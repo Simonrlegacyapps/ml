@@ -14,6 +14,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.demomlkit.R
 import com.example.demomlkit.databinding.ActivityMainBinding
+import com.example.demomlkit.utils.PrefManager
+import com.example.demomlkit.utils.toast
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.mlkit.vision.pose.PoseDetector
 
@@ -42,25 +44,35 @@ class MainActivity : AppCompatActivity() {
             if (allPermissionsGranted()) {
                 startActivity(Intent(this, CamActivity::class.java))
                 finish()
-            } else Toast.makeText(this, "Permissions not granted by the user.", Toast.LENGTH_SHORT)
-                .show()
+            } else toast(this, "Permissions not granted by the user.")
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(R.layout.activity_main)
+        setContentView(binding.root)
 
-        checkRequiredPermissions()
+        checkUserStatus()
     }
 
-    private fun checkRequiredPermissions() {
-        if (allPermissionsGranted()) {
+    private fun checkUserStatus() {
+        if (PrefManager.getString("isLoggedIn") == "yes") {
             startActivity(Intent(this, CamActivity::class.java))
             finish()
+        } else {
+            binding.loginButton.setOnClickListener {
+                if (allPermissionsGranted()) {
+
+                    startActivity(Intent(this, CamActivity::class.java))
+                    finish()
+                } else ActivityCompat.requestPermissions(
+                    this,
+                    REQUIRED_PERMISSIONS,
+                    REQUEST_CODE_PERMISSIONS
+                )
+            }
         }
-        else ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
     }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {

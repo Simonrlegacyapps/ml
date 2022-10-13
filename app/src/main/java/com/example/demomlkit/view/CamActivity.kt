@@ -14,8 +14,11 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.example.demomlkit.databinding.ActivityCamBinding
-import com.example.demomlkit.utils.getCoordinates
+import com.example.demomlkit.utils.Draw
+import com.example.demomlkit.utils.PrefManager
+import com.example.demomlkit.utils.toast
 import com.google.common.util.concurrent.ListenableFuture
+import com.google.mlkit.common.model.LocalModel
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
@@ -36,9 +39,8 @@ class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener
         super.onCreate(savedInstanceState)
         binding = ActivityCamBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        startCamera(CameraSelector.LENS_FACING_FRONT)
-
+        PrefManager.putString("isLoggedIn", "yes")
+        startCamera(CameraSelector.LENS_FACING_BACK)
         initListeners()
     }
 
@@ -47,7 +49,7 @@ class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener
         binding.rotateCameraIconFront.setOnClickListener {
             binding.rotateCameraIconBack.visibility = View.VISIBLE
             binding.rotateCameraIconFront.visibility = View.GONE
-            startCamera(CameraSelector.LENS_FACING_BACK)
+            startCamera(CameraSelector.LENS_FACING_FRONT)
         }
         binding.rotateCameraIconBack.setOnClickListener {
             binding.rotateCameraIconBack.visibility = View.GONE
@@ -55,7 +57,7 @@ class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener
             binding.flashIconOn.visibility = View.GONE
             binding.flashIconOff.visibility = View.VISIBLE
             flashOn = false
-            startCamera(CameraSelector.LENS_FACING_FRONT)
+            startCamera(CameraSelector.LENS_FACING_BACK)
         }
 
         binding.flashIconOn.setOnClickListener {
@@ -80,7 +82,6 @@ class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener
         poseDetector = PoseDetection.getClient(options)
 
         cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-
         cameraProviderFuture.addListener({
             bindPreview(cameraProvider = cameraProviderFuture.get(), lensFacing)
         }, ContextCompat.getMainExecutor(this))
@@ -108,10 +109,19 @@ class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener
                 // Passing image to mlkit
                 poseDetector.process(inputImage)
                     .addOnSuccessListener { obj ->
-                        if (obj.allPoseLandmarks.size>0) getCoordinates(obj, binding.tvAngle)
+                        if (obj.allPoseLandmarks.size>0) {
+                            if (binding.parentLayout.childCount > 3) binding.parentLayout.removeViewAt(3)
+                            val mView = Draw(this, obj, binding.tvAngle)
+                            binding.parentLayout.addView(mView)
+                        } else if (binding.parentLayout.childCount > 3) {
+                            binding.parentLayout.removeViewAt(3)
+                            binding.tvAngle.text = ""
+                        }
                         imageProxy.close()
                     }.addOnFailureListener {
                         Log.d("TAGpose00", "onCreate: ${it.message}")
+                        toast(applicationContext, it.message.toString())
+                        imageProxy.close()
                     }
             }
         }

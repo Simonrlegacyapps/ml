@@ -2,9 +2,9 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/parentLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:id="@+id/parentLayout"
     android:background="@color/white"
     android:fitsSystemWindows="true">
 
@@ -19,8 +19,8 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/_10sdp"
         android:layout_marginTop="@dimen/_18sdp"
-        app:cardElevation="@dimen/_6sdp"
         app:cardCornerRadius="@dimen/_16sdp"
+        app:cardElevation="@dimen/_6sdp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -39,8 +39,8 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:padding="8dp"
-                android:visibility="gone"
                 android:src="@drawable/ic_flash_on"
+                android:visibility="gone"
                 app:layout_constraintBottom_toTopOf="@id/guideline"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -97,22 +97,17 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.cardview.widget.CardView>
 
-<!--    <com.example.demomlkit.utils.CustomGraphic-->
-<!--        android:id="@+id/customGraphic"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="match_parent"/>-->
-
     <TextView
         android:id="@+id/tvAngle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="@dimen/_12ssp"
-        android:lineSpacingExtra="@dimen/_2sdp"
-        android:includeFontPadding="false"
-        android:textStyle="bold"
         android:layout_marginStart="@dimen/_8sdp"
         android:layout_marginBottom="@dimen/_8sdp"
+        android:includeFontPadding="false"
+        android:lineSpacingExtra="@dimen/_2sdp"
         android:textColor="@color/red"
+        android:textSize="@dimen/_12ssp"
+        android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
