@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
@@ -14,11 +15,9 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.example.demomlkit.databinding.ActivityCamBinding
-import com.example.demomlkit.utils.Draw
-import com.example.demomlkit.utils.PrefManager
-import com.example.demomlkit.utils.toast
+import com.example.demomlkit.utils.*
 import com.google.common.util.concurrent.ListenableFuture
-import com.google.mlkit.common.model.LocalModel
+import com.google.mlkit.common.MlKitException
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
@@ -32,7 +31,9 @@ class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener
     private lateinit var preview : Preview
     private lateinit var cameraSelector : CameraSelector
     private lateinit var imageAnalysis : ImageAnalysis
+    private var cameraProvider: ProcessCameraProvider? = null
     var flashOn: Boolean = false
+    private var imageProcessor: VisionImageProcessor? = null
 
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,7 +41,7 @@ class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener
         binding = ActivityCamBinding.inflate(layoutInflater)
         setContentView(binding.root)
         PrefManager.putString("isLoggedIn", "yes")
-        startCamera(CameraSelector.LENS_FACING_BACK)
+//        startCamera(CameraSelector.LENS_FACING_BACK)
         initListeners()
     }
 
@@ -82,14 +83,16 @@ class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener
         poseDetector = PoseDetection.getClient(options)
 
         cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProvider = cameraProviderFuture.get()
+
         cameraProviderFuture.addListener({
-            bindPreview(cameraProvider = cameraProviderFuture.get(), lensFacing)
+            bindPreview(lensFacing)
         }, ContextCompat.getMainExecutor(this))
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
     @SuppressLint("UnsafeOptInUsageError")
-    private fun bindPreview(cameraProvider: ProcessCameraProvider, lensFacing: Int) {
+    private fun bindPreview(lensFacing: Int) {
         preview = Preview.Builder().build().also {
             it.setSurfaceProvider(binding.myCameraView.surfaceProvider)
         }
@@ -98,90 +101,98 @@ class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener
             .requireLensFacing(lensFacing)
             .build()
 
+        // try
+
+        if (imageProcessor != null) imageProcessor!!.stop()
+
+        imageProcessor =
+            try {
+                PoseDetectorProcessor(
+                    this,
+                    poseDetector,
+                    showInFrameLikelihood = true,
+                    visualizeZ = false,
+                    rescaleZForVisualization = false,
+                    runClassification = true,
+                    isStreamMode = true)
+            } catch (e: Exception) {
+                Toast.makeText(
+                    applicationContext,
+                    "Can not create image processor: " + e.localizedMessage,
+                    Toast.LENGTH_LONG
+                ).show()
+                return
+            }
+
         imageAnalysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
+
         imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
             val mediaImage = imageProxy.image
             if (mediaImage != null) {
-                val inputImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+                val inputImage = InputImage.fromMediaImage(mediaImage, rotationDegrees)
+
+                // try/////
+                val isImageFlipped = lensFacing == CameraSelector.LENS_FACING_FRONT
+
+                if (rotationDegrees == 0 || rotationDegrees == 180)
+                    binding.graphicOverlay.setImageSourceInfo(imageProxy.width, imageProxy.height, isImageFlipped)
+                else
+                    binding.graphicOverlay.setImageSourceInfo(imageProxy.height, imageProxy.width, isImageFlipped)
+
+                try {
+                    imageProcessor!!.processImageProxy(imageProxy, binding.graphicOverlay)
+                } catch (e: MlKitException) {
+                    Log.e("TAG", "Failed to process image. Error: " + e.localizedMessage)
+                    Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT).show()
+                }
+
+                    //////
 
                 // Passing image to mlkit
-                poseDetector.process(inputImage)
-                    .addOnSuccessListener { obj ->
-                        if (obj.allPoseLandmarks.size>0) {
-                            if (binding.parentLayout.childCount > 3) binding.parentLayout.removeViewAt(3)
-                            val mView = Draw(this, obj, binding.tvAngle)
-                            binding.parentLayout.addView(mView)
-                        } else if (binding.parentLayout.childCount > 3) {
-                            binding.parentLayout.removeViewAt(3)
-                            binding.tvAngle.text = ""
-                        }
-                        imageProxy.close()
-                    }.addOnFailureListener {
-                        Log.d("TAGpose00", "onCreate: ${it.message}")
-                        toast(applicationContext, it.message.toString())
-                        imageProxy.close()
-                    }
+//                poseDetector.process(inputImage)
+//                    .addOnSuccessListener { obj ->
+//                        if (obj.allPoseLandmarks.size>0) {
+//                            if (binding.parentLayout.childCount > 3) binding.parentLayout.removeViewAt(3)
+//                            val mView = Draw(this, obj, binding.tvAngle)
+//
+//                            binding.parentLayout.addView(mView)
+//                        } else if (binding.parentLayout.childCount > 3) {
+//                            binding.parentLayout.removeViewAt(3)
+//                            binding.tvAngle.text = ""
+//                        }
+//                        imageProxy.close()
+//                    }.addOnFailureListener {
+//                        Log.d("TAGpose00", "onCreate: ${it.message}")
+//                        toast(applicationContext, it.message.toString())
+//                        imageProxy.close()
+//                    }
+
             }
         }
-        cameraProvider.unbindAll()
-        cameraProvider.bindToLifecycle(this as LifecycleOwner, cameraSelector, preview, imageAnalysis).cameraControl.enableTorch(flashOn)
+        cameraProvider?.unbindAll()
+        cameraProvider?.bindToLifecycle(this as LifecycleOwner, cameraSelector, preview, imageAnalysis)?.cameraControl?.enableTorch(flashOn)
     }
 
+    @RequiresApi(Build.VERSION_CODES.R)
+    override fun onResume() {
+        super.onResume()
+        startCamera(CameraSelector.LENS_FACING_BACK)
+//        if (cameraProvider != null) {
+//            binding.graphicOverlay.clear()
+//            cameraProvider?.unbindAll()
+//        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        imageProcessor?.run { this.stop() }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        imageProcessor?.run { this.stop() }
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//                            Log.d("TAGchildcount", "bindPreview: ${parentLayout.childCount}")
-////                            binding.parentLayout.addView()
-//                            val poseLandmark = obj.getPoseLandmark(PoseLandmark.LEFT_SHOULDER)
-//                            Log.d("TAGpose01", "onCreate: ${obj.allPoseLandmarks[0].position3D.x}")
-//                            Log.d("TAGpose02", "onCreate: ${obj.allPoseLandmarks[0].position}")
-//                            Log.d("TAGpose03", "onCreate: ${obj.allPoseLandmarks[0].inFrameLikelihood}")
-//                            Log.d("TAGpose04", "onCreate: ${obj.allPoseLandmarks[0].landmarkType}")
-//
-//                            val rightHipAngle = getAngle(
-//                                obj.getPoseLandmark(PoseLandmark.RIGHT_SHOULDER)!!,
-//                                obj.getPoseLandmark(PoseLandmark.RIGHT_HIP)!!,
-//                                obj.getPoseLandmark(PoseLandmark.RIGHT_KNEE)!!)
-//                            Log.d("TAGpose05", "onCreate: ${rightHipAngle}")
-
-
-
-
-
-//  override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
-//    }
-//
-//    override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {
-//    }
-//
-//    override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
-//        return false
-//    }
-//
-//    override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
-//    }

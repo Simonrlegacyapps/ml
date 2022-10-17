@@ -13,12 +13,21 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <com.example.demomlkit.utils.GraphicOverlay
+        android:id="@+id/graphicOverlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintLeft_toLeftOf="@id/myCameraView"
+        app:layout_constraintRight_toRightOf="@id/myCameraView"
+        app:layout_constraintTop_toTopOf="@id/myCameraView"
+        app:layout_constraintBottom_toBottomOf="@id/myCameraView"/>
+
     <androidx.cardview.widget.CardView
         android:id="@+id/cardView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/_10sdp"
-        android:layout_marginTop="@dimen/_18sdp"
+        android:layout_marginTop="@dimen/_68sdp"
         app:cardCornerRadius="@dimen/_16sdp"
         app:cardElevation="@dimen/_6sdp"
         app:layout_constraintStart_toStartOf="parent"

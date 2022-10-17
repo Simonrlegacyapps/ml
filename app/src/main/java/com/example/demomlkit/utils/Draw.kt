@@ -1,15 +1,14 @@
 package com.example.demomlkit.utils
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.PointF
+import android.graphics.*
 import android.util.Log
 import android.view.View
 import android.widget.TextView
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseLandmark
+import java.util.*
+
 
 class Draw(ctx: Context, var pose: Pose, angleText: TextView) : View(ctx) {
     private var mAngleText: TextView = angleText
@@ -24,6 +23,19 @@ class Draw(ctx: Context, var pose: Pose, angleText: TextView) : View(ctx) {
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
         try {
+
+//            val drawBitmap = Bitmap.createBitmap(
+//                resizedBitmap.getWidth(),
+//                resizedBitmap.getHeight(),
+//                resizedBitmap.getConfig()
+//            )
+//
+//            val canvas = Canvas(drawBitmap)
+//
+//            canvas.drawBitmap(resizedBitmap, 0f, 0f, null)
+
+
+
             pose.getPoseLandmark(PoseLandmark.RIGHT_EYE)!!.inFrameLikelihood
             pose.allPoseLandmarks[0]?.landmarkType
 
