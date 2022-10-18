@@ -63,7 +63,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             binding.loginButton.setOnClickListener {
                 if (allPermissionsGranted()) {
-
                     startActivity(Intent(this, CamActivity::class.java))
                     finish()
                 } else ActivityCompat.requestPermissions(

@@ -21,16 +21,13 @@ abstract class VisionProcessorBase<T> protected constructor(context: Context) : 
     private val activityManager: ActivityManager
     private val fpsTimer = Timer()
     private val executor: ScopedExecutor
-
     // Whether this processor is already shut down
     private var isShutdown = false
-
     // Used to calculate latency, running in the same thread, no sync needed.
     private var numRuns = 0
     private var totalRunMs: Long = 0
     private var maxRunMs: Long = 0
     private var minRunMs = Long.MAX_VALUE
-
     // Frame count that have been processed so far in an one second interval to calculate FPS.
     private var frameProcessedInOneSecondInterval = 0
     private var framesPerSecond = 0
@@ -38,26 +35,151 @@ abstract class VisionProcessorBase<T> protected constructor(context: Context) : 
     // To keep the latest images and its metadata.
     @GuardedBy("this")
     private var latestImage: ByteBuffer? = null
-
     @GuardedBy("this")
     private var latestImageMetaData: FrameMetadata? = null
-
     // To keep the images and metadata in process.
     @GuardedBy("this")
     private var processingImage: ByteBuffer? = null
-
     @GuardedBy("this")
     private var processingMetaData: FrameMetadata? = null
 
-    // code for processing single still image
-    override fun processBitmap(bitmap: Bitmap?, graphicOverlay: GraphicOverlay) {
-        requestDetectInImage(
-            InputImage.fromBitmap(bitmap!!, 0),
-            graphicOverlay,  /* originalCameraImage= */
-            null,  /* shouldShowFps= */
-            false
+    init {
+        activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        executor = ScopedExecutor(TaskExecutors.MAIN_THREAD)
+
+        fpsTimer.scheduleAtFixedRate(
+            object : TimerTask() {
+                override fun run() {
+                        framesPerSecond = frameProcessedInOneSecondInterval
+                        frameProcessedInOneSecondInterval = 0
+                }
+            }, 0, 1000
         )
     }
+
+    // code for processing single still image
+    override fun processBitmap(bitmap: Bitmap?, graphicOverlay: GraphicOverlay) {
+        bitmap?.let { bit ->
+            requestDetectInImage(
+                InputImage.fromBitmap(bit, 0),
+                graphicOverlay,  /* originalCameraImage= */
+                null,  /* shouldShowFps= */
+                false
+            )
+        }
+    }
+
+    //Code for processing live preview frame from CameraX API
+    @RequiresApi(VERSION_CODES.KITKAT)
+    @ExperimentalGetImage
+    override fun processImageProxy(image: ImageProxy?, graphicOverlay: GraphicOverlay) {
+        var bitmap: Bitmap? = null
+        image?.let { im ->
+            if (isShutdown) {
+                im.close()
+                return
+            }
+
+            bitmap = getBitmap(im)
+
+            im.image?.let { InputImage.fromMediaImage(it, image.imageInfo.rotationDegrees) }?.let {
+                requestDetectInImage(
+                    it,
+                    graphicOverlay,
+                    bitmap,
+                    true
+                ).addOnCompleteListener { results: Task<T>? -> image.close() }
+            }
+        }
+    }
+
+    //Common processing logic
+    private fun requestDetectInImage(
+        image: InputImage,
+        graphicOverlay: GraphicOverlay,
+        @Nullable originalCameraImage: Bitmap?,
+        shouldShowFps: Boolean
+    ): Task<T> {
+        val startMs = SystemClock.elapsedRealtime()
+        return detectInImage(image)
+            .addOnSuccessListener(executor) { results: T ->
+                val currentLatencyMs : Long = SystemClock.elapsedRealtime() - startMs
+                numRuns++
+                frameProcessedInOneSecondInterval++
+                totalRunMs += currentLatencyMs
+                maxRunMs = Math.max(currentLatencyMs, maxRunMs)
+                minRunMs = Math.min(currentLatencyMs, minRunMs)
+
+                // Only log inference info once, per second. When frameProcessedInOneSecondInterval is
+                // equal to 1, it means this is the first frame processed during the current second.
+                if (frameProcessedInOneSecondInterval == 1) {
+                    val mi = ActivityManager.MemoryInfo()
+                    activityManager.getMemoryInfo(mi)
+                    val availableMegs: Long = mi.availMem / 0x100000L
+                    Log.d(TAG, "Memory available in system: $availableMegs MB")
+                }
+                graphicOverlay.clear()
+                if (originalCameraImage != null)
+                    graphicOverlay.add(CameraImageGraphic(graphicOverlay, originalCameraImage))
+
+//                graphicOverlay.add(
+//                    InferenceInfoGraphic(
+//                        graphicOverlay,
+//                        currentLatencyMs,
+//                        if (shouldShowFps) framesPerSecond else null
+//                    )
+//                )
+                this@VisionProcessorBase.onSuccess(results, graphicOverlay)
+                graphicOverlay.postInvalidate()
+            }.addOnFailureListener(executor) { e: Exception ->
+                graphicOverlay.clear()
+                graphicOverlay.postInvalidate()
+                val error = "Failed to process. Error: " + e.localizedMessage
+                Toast.makeText(
+                    graphicOverlay.context,
+                    """
+                        $error
+                        Cause: ${e.cause}
+                        """.trimIndent(),
+                    Toast.LENGTH_SHORT
+                ).show()
+                Log.d(TAG, error)
+                e.printStackTrace()
+                this@VisionProcessorBase.onFailure(e)
+            }
+    }
+
+    override fun stop() {
+        executor.shutdown()
+        isShutdown = true
+        numRuns = 0
+        totalRunMs = 0
+        fpsTimer.cancel()
+    }
+
+    protected abstract fun detectInImage(image: InputImage): Task<T>
+    protected abstract fun onSuccess(results: T, graphicOverlay: GraphicOverlay)
+    protected abstract fun onFailure(e: Exception)
+
+    companion object {
+        private const val TAG = "VisionProcessorBase"
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //    // -----------------Code for processing live preview frame from Camera1 API-----------------------
 //    @Synchronized
@@ -110,120 +232,3 @@ abstract class VisionProcessorBase<T> protected constructor(context: Context) : 
 //                )
 //            }
 //    }
-
-    // -----------------Code for processing live preview frame from CameraX API-----------------------
-    @RequiresApi(VERSION_CODES.KITKAT)
-    @ExperimentalGetImage
-    override fun processImageProxy(image: ImageProxy?, graphicOverlay: GraphicOverlay) {
-        if (isShutdown) {
-            image!!.close()
-            return
-        }
-        var bitmap: Bitmap? = null
-
-        bitmap = getBitmap(image!!)
-
-        requestDetectInImage(
-            InputImage.fromMediaImage(image!!.image!!, image.imageInfo.rotationDegrees),
-            graphicOverlay,  /* originalCameraImage= */
-            bitmap,  /* shouldShowFps= */
-            true
-        ) // When the image is from CameraX analysis use case, must call image.close() on received
-            // images when finished using them. Otherwise, new images may not be received or the camera
-            // may stall.
-            .addOnCompleteListener { results: Task<T>? -> image.close() }
-    }
-
-    // -----------------Common processing logic-------------------------------------------------------
-    private fun requestDetectInImage(
-        image: InputImage,
-        graphicOverlay: GraphicOverlay,
-        @Nullable originalCameraImage: Bitmap?,
-        shouldShowFps: Boolean
-    ): Task<T> {
-        val startMs = SystemClock.elapsedRealtime()
-        return detectInImage(image)
-            .addOnSuccessListener(
-                executor
-            ) { results: T ->
-                val currentLatencyMs : Long = SystemClock.elapsedRealtime() - startMs
-                numRuns++
-                frameProcessedInOneSecondInterval++
-                totalRunMs += currentLatencyMs
-                maxRunMs = Math.max(currentLatencyMs, maxRunMs)
-                minRunMs = Math.min(currentLatencyMs, minRunMs)
-
-                // Only log inference info once per second. When frameProcessedInOneSecondInterval is
-                // equal to 1, it means this is the first frame processed during the current second.
-                if (frameProcessedInOneSecondInterval == 1) {
-                    Log.d(TAG, "Max latency is: $maxRunMs")
-                    Log.d(TAG, "Min latency is: $minRunMs")
-                    Log.d(TAG, "Num of Runs: " + numRuns + ", Avg latency is: " + totalRunMs / numRuns)
-                    val mi = ActivityManager.MemoryInfo()
-                    activityManager.getMemoryInfo(mi)
-                    val availableMegs: Long = mi.availMem / 0x100000L
-                    Log.d(TAG, "Memory available in system: $availableMegs MB")
-                }
-                graphicOverlay.clear()
-                if (originalCameraImage != null)
-                    graphicOverlay.add(CameraImageGraphic(graphicOverlay, originalCameraImage))
-
-                graphicOverlay.add(
-                    InferenceInfoGraphic(
-                        graphicOverlay,
-                        currentLatencyMs,
-                        if (shouldShowFps) framesPerSecond else null
-                    )
-                )
-                this@VisionProcessorBase.onSuccess(results, graphicOverlay)
-                graphicOverlay.postInvalidate()
-            }
-            .addOnFailureListener(
-                executor
-            ) { e: Exception ->
-                graphicOverlay.clear()
-                graphicOverlay.postInvalidate()
-                val error = "Failed to process. Error: " + e.localizedMessage
-                Toast.makeText(
-                    graphicOverlay.context,
-                    """
-                        $error
-                        Cause: ${e.cause}
-                        """.trimIndent(),
-                    Toast.LENGTH_SHORT
-                ).show()
-                Log.d(TAG, error)
-                e.printStackTrace()
-                this@VisionProcessorBase.onFailure(e)
-            }
-    }
-
-    override fun stop() {
-        executor.shutdown()
-        isShutdown = true
-        numRuns = 0
-        totalRunMs = 0
-        fpsTimer.cancel()
-    }
-
-    protected abstract fun detectInImage(image: InputImage?): Task<T>
-    protected abstract fun onSuccess(results: T, graphicOverlay: GraphicOverlay)
-    protected abstract fun onFailure(e: Exception)
-
-    companion object {
-        private const val TAG = "VisionProcessorBase"
-    }
-
-    init {
-        activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        executor = ScopedExecutor(TaskExecutors.MAIN_THREAD)
-        fpsTimer.scheduleAtFixedRate(
-            object : TimerTask() {
-                override fun run() {
-                    framesPerSecond = frameProcessedInOneSecondInterval
-                    frameProcessedInOneSecondInterval = 0
-                }
-            }, 0, 1000
-        )
-    }
-}

@@ -28,10 +28,8 @@ class PoseClassifier(
     }
 
     /**
-     * Returns the max range of confidence values.
-     *
-     *
-     * <Since we calculate confidence by counting></Since>[PoseSample]s that survived
+     * Returning the max range of confidence values.
+     * Since we calculate confidence by counting PoseSamples that survived
      * outlier-filtering by maxDistanceTopK and meanDistanceTopK, this range is the minimum of two.
      */
     fun confidenceRange(): Int {
@@ -47,9 +45,7 @@ class PoseClassifier(
     fun classify(landmarks: List<PointF3D>): ClassificationResult {
         val result = ClassificationResult()
         // Return early if no landmarks detected.
-        if (landmarks.isEmpty()) {
-            return result
-        }
+        if (landmarks.isEmpty()) return result
 
         // We do flipping on X-axis so we are horizontal (mirror) invariant.
         val flippedLandmarks: MutableList<PointF3D> = ArrayList(landmarks)
@@ -93,11 +89,14 @@ class PoseClassifier(
                 )
             }
             // Set the max distance as min of original and flipped max distance.
-            maxDistances.add(Pair<PoseSample?, Float?>(poseSample, Math.min(originalMax, flippedMax)))
+            maxDistances.add(
+                Pair<PoseSample?, Float?>(
+                    poseSample,
+                    Math.min(originalMax, flippedMax)
+                )
+            )
             // We only want to retain top n so pop the highest distance.
-            if (maxDistances.size > maxDistanceTopK) {
-                maxDistances.poll()
-            }
+            if (maxDistances.size > maxDistanceTopK) maxDistances.poll()
         }
 
         // Keeps higher mean distances on top so we can pop it when top_k size is reached.
@@ -129,9 +128,7 @@ class PoseClassifier(
             val meanDistance = Math.min(originalSum, flippedSum) / (embedding.size * 2)
             meanDistances.add(Pair<PoseSample?, Float?>(poseSample, meanDistance))
             // We only want to retain top k so pop the highest mean distance.
-            if (meanDistances.size > meanDistanceTopK) {
-                meanDistances.poll()
-            }
+            if (meanDistances.size > meanDistanceTopK) meanDistances.poll()
         }
         for (sampleDistances in meanDistances) {
             sampleDistances.first?.className?.let {
@@ -145,9 +142,9 @@ class PoseClassifier(
         private const val TAG = "PoseClassifier"
         private const val MAX_DISTANCE_TOP_K = 30
         private const val MEAN_DISTANCE_TOP_K = 10
-
         // Note Z has a lower weight as it is generally less accurate than X & Y.
         private val AXES_WEIGHTS = PointF3D.from(1f, 1f, 0.2f)
+
         private fun extractPoseLandmarks(pose: Pose): List<PointF3D> {
             val landmarks: MutableList<PointF3D> = ArrayList()
             for (poseLandmark in pose.allPoseLandmarks) {

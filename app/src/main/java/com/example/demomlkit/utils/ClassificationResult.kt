@@ -14,17 +14,16 @@ class ClassificationResult {
         get() = classConfidences.keys
 
     fun getClassConfidence(className: String): Int {
-        return if (classConfidences.containsKey(className)) classConfidences[className]!! else 0
+        return if (classConfidences.containsKey(className) && classConfidences[className] != null) classConfidences[className]!! else 0
     }
 
     val maxConfidenceClass: String
         get() = Collections.max<Map.Entry<String, Int>>(
             classConfidences.entries
-        ) { (_, value), (_, value1) -> (value - value1).toInt() }
-            .key
+        ) { (_, value), (_, value1) -> (value - value1).toInt() }.key
 
     fun incrementClassConfidence(className: String) {
-        classConfidences[className] = (if (classConfidences.containsKey(className)) classConfidences[className]!! + 1 else 1)
+        classConfidences[className] = (if (classConfidences.containsKey(className) && classConfidences[className] != null) classConfidences[className]!! + 1 else 1)
     }
 
     fun putClassConfidence(className: String, confidence: Int) {

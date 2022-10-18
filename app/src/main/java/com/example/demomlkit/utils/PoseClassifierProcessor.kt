@@ -24,6 +24,7 @@ class PoseClassifierProcessor @WorkerThread constructor(context: Context, isStre
     private var repCounters: MutableList<RepetitionCounter>? = null
     private var poseClassifier: PoseClassifier? = null
     private var lastRepResult: String? = null
+
     private fun loadPoseSamples(context: Context) {
         val poseSamples: MutableList<PoseSample?> = ArrayList<PoseSample?>()
         try {
@@ -34,9 +35,8 @@ class PoseClassifierProcessor @WorkerThread constructor(context: Context, isStre
             while (csvLine != null) {
                 // If line is not a valid {@link PoseSample}, we'll get null and skip adding to the list.
                 val poseSample: PoseSample? = PoseSample.getPoseSample(csvLine, ",")
-                if (poseSample != null) {
+                if (poseSample != null)
                     poseSamples.add(poseSample)
-                }
                 csvLine = reader.readLine()
             }
         } catch (e: IOException) {
@@ -54,10 +54,7 @@ class PoseClassifierProcessor @WorkerThread constructor(context: Context, isStre
     }
 
     /**
-     * Given a new [Pose] input, returns a list of formatted [String]s with Pose
-     * classification results.
-     *
-     *
+     * Given a new Pose input, returns a list of formatted Strings with Pose classification results.
      * Currently it returns up to 2 strings as following:
      * 0: PoseClass : X reps
      * 1: PoseClass : [0.0-1.0] confidence

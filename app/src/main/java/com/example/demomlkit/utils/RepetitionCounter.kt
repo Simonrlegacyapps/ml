@@ -14,9 +14,8 @@ class RepetitionCounter @JvmOverloads constructor(
 
     /**
      * Adds a new Pose classification result and updates reps for given class.
-     *
-     * @param classificationResult {link ClassificationResult} of class to confidence values.
-     * @return number of reps.
+     * classificationResult param ClassificationResult of class to confidence values.
+     * return number of reps.
      */
     fun addClassificationResult(classificationResult: ClassificationResult): Int {
         val poseConfidence = classificationResult.getClassConfidence(className)
@@ -32,7 +31,7 @@ class RepetitionCounter @JvmOverloads constructor(
     }
 
     companion object {
-        // These thresholds can be tuned in conjunction with the Top K values in {@link PoseClassifier}.
+        // These thresholds can be tuned in conjunction with the Top K values in {PoseClassifier}.
         // The default Top K value is 10 so the range here is [0-10].
         private const val DEFAULT_ENTER_THRESHOLD = 6f
         private const val DEFAULT_EXIT_THRESHOLD = 4f

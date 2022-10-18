@@ -17,11 +17,19 @@ import java.nio.ByteBuffer
 import kotlin.math.abs
 import kotlin.math.atan2
 
-fun getAngle(firstPoint: PoseLandmark, midPoint: PoseLandmark, lastPoint: PoseLandmark): Double {
-    var result = Math.toDegrees(
-        atan2(lastPoint.position.y - midPoint.position.y,
-        lastPoint.position.x - midPoint.position.x) - atan2(firstPoint.position.y - midPoint.position.y,
-        firstPoint.position.x - midPoint.position.x).toDouble())
+fun getAngle(firstPoint: PoseLandmark?, midPoint: PoseLandmark?, lastPoint: PoseLandmark?): Double {
+    var result : Double = if (firstPoint != null && midPoint != null && lastPoint != null) {
+        Math.toDegrees(
+            atan2(
+                lastPoint.position.y - midPoint.position.y,
+                lastPoint.position.x - midPoint.position.x
+            ) - atan2(
+                firstPoint.position.y - midPoint.position.y,
+                firstPoint.position.x - midPoint.position.x
+            ).toDouble()
+        )
+    } else 0.0
+
     result = abs(result) // Angle should never be negative
     if (result > 180) result = 360.0 - result
     return result
@@ -41,7 +49,7 @@ fun getBitmap(image: ImageProxy): Bitmap? {
         .setRotation(image.imageInfo.rotationDegrees)
         .build()
     val nv21Buffer: ByteBuffer? = yuv420ThreePlanesToNV21(
-        image.image!!.planes, image.width, image.height
+        image.image?.planes, image.width, image.height
     )
     return getBitmap(nv21Buffer, frameMetadata)
 }
@@ -94,24 +102,24 @@ private fun rotateBitmap(
 }
 
 private fun yuv420ThreePlanesToNV21(
-    yuv420888planes: Array<Plane>, width: Int, height: Int
+    yuv420888planes: Array<Plane>?, width: Int, height: Int
 ): ByteBuffer? {
     val imageSize = width * height
     val out = ByteArray(imageSize + 2 * (imageSize / 4))
     if (areUVPlanesNV21(yuv420888planes, width, height)) {
         // Copy the Y values.
-        yuv420888planes[0].buffer[out, 0, imageSize]
-        val uBuffer = yuv420888planes[1].buffer
-        val vBuffer = yuv420888planes[2].buffer
+        yuv420888planes?.get(0)?.buffer?.get(out, 0, imageSize)
+        val uBuffer = yuv420888planes?.get(1)?.buffer
+        val vBuffer = yuv420888planes?.get(2)?.buffer
         // Get the first V value from the V buffer, since the U buffer does not contain it.
-        vBuffer[out, imageSize, 1]
+        vBuffer?.get(out, imageSize, 1)
         // Copy the first U value and the remaining VU values from the U buffer.
-        uBuffer[out, imageSize + 1, 2 * imageSize / 4 - 1]
+        uBuffer?.get(out, imageSize + 1, 2 * imageSize / 4 - 1)
     } else {
         // Fallback to copying the UV values one by one, which is slower but also works.
         // Unpack Y.
         unpackPlane(
-            yuv420888planes[0],
+            yuv420888planes?.get(0),
             width,
             height,
             out,
@@ -120,7 +128,7 @@ private fun yuv420ThreePlanesToNV21(
         )
         // Unpack U.
         unpackPlane(
-            yuv420888planes[1],
+            yuv420888planes?.get(1),
             width,
             height,
             out,
@@ -129,7 +137,7 @@ private fun yuv420ThreePlanesToNV21(
         )
         // Unpack V.
         unpackPlane(
-            yuv420888planes[2],
+            yuv420888planes?.get(2),
             width,
             height,
             out,
@@ -148,17 +156,17 @@ private fun yuv420ThreePlanesToNV21(
  * spaced by 'pixelStride'. Note that there is no row padding on the output.
  */
 private fun unpackPlane(
-    plane: Plane, width: Int, height: Int, out: ByteArray, offset: Int, pixelStride: Int
+    plane: Plane?, width: Int, height: Int, out: ByteArray, offset: Int, pixelStride: Int
 ) {
-    val buffer = plane.buffer
-    buffer.rewind()
+    val buffer = plane?.buffer
+    buffer?.rewind()
 
     // Compute the size of the current plane.
     // We assume that it has the aspect ratio as the original image.
-    val numRow = (buffer.limit() + plane.rowStride - 1) / plane.rowStride
-    if (numRow == 0) {
-        return
-    }
+    //val numRow = (buffer.limit() + plane.rowStride - 1) / plane.rowStride
+    val numRow = ((buffer?.limit())?.plus(plane.rowStride)?.minus(1))?.div(plane.rowStride)
+    if (numRow == 0 || numRow == null) return
+
     val scaleFactor = height / numRow
     val numCol = width / scaleFactor
 
@@ -177,26 +185,31 @@ private fun unpackPlane(
 }
 
 /** Checks if the UV plane buffers of a YUV_420_888 image are in the NV21 format.  */
-private fun areUVPlanesNV21(planes: Array<Plane>, width: Int, height: Int): Boolean {
+private fun areUVPlanesNV21(planes: Array<Plane>?, width: Int, height: Int): Boolean {
     val imageSize = width * height
-    val uBuffer = planes[1].buffer
-    val vBuffer = planes[2].buffer
+    val uBuffer = planes?.get(1)?.buffer
+    val vBuffer = planes?.get(2)?.buffer
 
     // Backup buffer properties.
-    val vBufferPosition = vBuffer.position()
-    val uBufferLimit = uBuffer.limit()
+    val vBufferPosition = vBuffer?.position()
+    val uBufferLimit = uBuffer?.limit()
 
     // Advance the V buffer by 1 byte, since the U buffer will not contain the first V value.
-    vBuffer.position(vBufferPosition + 1)
+    vBufferPosition?.plus(1)?.let { vBuffer.position(it) }
     // Chop off the last byte of the U buffer, since the V buffer will not contain the last U value.
-    uBuffer.limit(uBufferLimit - 1)
+    if (uBufferLimit != null)
+        uBuffer.limit(uBufferLimit - 1)
 
     // Check that the buffers are equal and have the expected number of elements.
-    val areNV21 = vBuffer.remaining() == 2 * imageSize / 4 - 2 && vBuffer.compareTo(uBuffer) == 0
+    val areNV21 = vBuffer?.remaining() == 2 * imageSize / 4 - 2 && vBuffer.compareTo(uBuffer) == 0
 
     // Restore buffers to their initial state.
-    vBuffer.position(vBufferPosition)
-    uBuffer.limit(uBufferLimit)
+    if (vBufferPosition != null)
+        vBuffer.position(vBufferPosition)
+
+    if (uBufferLimit != null)
+        uBuffer.limit(uBufferLimit)
+
     return areNV21
 }
 
@@ -263,4 +276,3 @@ fun maxAbs(point: PointF3D): Float {
 fun sumAbs(point: PointF3D): Float {
     return Math.abs(point.x) + Math.abs(point.y) + Math.abs(point.z)
 }
-

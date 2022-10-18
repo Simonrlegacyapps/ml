@@ -41,7 +41,6 @@ class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener
         binding = ActivityCamBinding.inflate(layoutInflater)
         setContentView(binding.root)
         PrefManager.putString("isLoggedIn", "yes")
-//        startCamera(CameraSelector.LENS_FACING_BACK)
         initListeners()
     }
 
@@ -132,9 +131,7 @@ class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener
             val mediaImage = imageProxy.image
             if (mediaImage != null) {
                 val rotationDegrees = imageProxy.imageInfo.rotationDegrees
-                val inputImage = InputImage.fromMediaImage(mediaImage, rotationDegrees)
 
-                // try/////
                 val isImageFlipped = lensFacing == CameraSelector.LENS_FACING_FRONT
 
                 if (rotationDegrees == 0 || rotationDegrees == 180)
@@ -143,15 +140,52 @@ class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener
                     binding.graphicOverlay.setImageSourceInfo(imageProxy.height, imageProxy.width, isImageFlipped)
 
                 try {
-                    imageProcessor!!.processImageProxy(imageProxy, binding.graphicOverlay)
+                    imageProcessor?.processImageProxy(imageProxy, binding.graphicOverlay)
                 } catch (e: MlKitException) {
                     Log.e("TAG", "Failed to process image. Error: " + e.localizedMessage)
                     Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT).show()
                 }
+            }
+        }
+        cameraProvider?.unbindAll()
+        cameraProvider?.bindToLifecycle(this as LifecycleOwner, cameraSelector, preview, imageAnalysis)?.cameraControl?.enableTorch(flashOn)
+    }
 
-                    //////
+    @RequiresApi(Build.VERSION_CODES.R)
+    override fun onResume() {
+        super.onResume()
+        startCamera(CameraSelector.LENS_FACING_BACK)
+    }
 
-                // Passing image to mlkit
+    override fun onPause() {
+        super.onPause()
+        imageProcessor?.run { this.stop() }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        imageProcessor?.run { this.stop() }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// val inputImage = InputImage.fromMediaImage(mediaImage, rotationDegrees)
+
+// Passing image to mlkit
 //                poseDetector.process(inputImage)
 //                    .addOnSuccessListener { obj ->
 //                        if (obj.allPoseLandmarks.size>0) {
@@ -169,30 +203,3 @@ class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener
 //                        toast(applicationContext, it.message.toString())
 //                        imageProxy.close()
 //                    }
-
-            }
-        }
-        cameraProvider?.unbindAll()
-        cameraProvider?.bindToLifecycle(this as LifecycleOwner, cameraSelector, preview, imageAnalysis)?.cameraControl?.enableTorch(flashOn)
-    }
-
-    @RequiresApi(Build.VERSION_CODES.R)
-    override fun onResume() {
-        super.onResume()
-        startCamera(CameraSelector.LENS_FACING_BACK)
-//        if (cameraProvider != null) {
-//            binding.graphicOverlay.clear()
-//            cameraProvider?.unbindAll()
-//        }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        imageProcessor?.run { this.stop() }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        imageProcessor?.run { this.stop() }
-    }
-}

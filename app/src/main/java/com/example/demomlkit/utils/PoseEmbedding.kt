@@ -9,6 +9,7 @@ import com.google.mlkit.vision.pose.PoseLandmark
 object PoseEmbedding {
     // Multiplier to apply to the torso to get minimal body size. Picked this by experimentation.
     private const val TORSO_MULTIPLIER = 2.5f
+
     fun getPoseEmbedding(landmarks: List<PointF3D>): List<PointF3D> {
         val normalizedLandmarks = normalize(landmarks)
         return getEmbedding(normalizedLandmarks)
@@ -46,9 +47,7 @@ object PoseEmbedding {
         // can be bigger for a given pose depending on extension of limbs etc so we calculate that.
         for (landmark in landmarks) {
             val distance: Float = l2Norm2D(subtract(hipsCenter, landmark))
-            if (distance > maxDistance) {
-                maxDistance = distance
-            }
+            if (distance > maxDistance) maxDistance = distance
         }
         return maxDistance
     }
@@ -56,9 +55,10 @@ object PoseEmbedding {
     private fun getEmbedding(lm: List<PointF3D>): List<PointF3D> {
         val embedding: MutableList<PointF3D> = ArrayList()
 
-        // We use several pairwise 3D distances to form pose embedding. These were selected
-        // based on experimentation for best results with our default pose classes as captued in the
-        // pose samples csv. Feel free to play with this and add or remove for your use-cases.
+        // several pairwise 3D distances to form pose embedding.
+        // best results from default pose classes as captured in the
+        // pose samples csv.
+        // play with this and add or remove for your use-cases.
 
         // We group our distances by number of joints between the pairs.
         // One joint.

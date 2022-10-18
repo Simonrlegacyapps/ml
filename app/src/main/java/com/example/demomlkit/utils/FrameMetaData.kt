@@ -24,8 +24,6 @@ class FrameMetadata private constructor(val width: Int, val height: Int, val rot
             return this
         }
 
-        fun build(): FrameMetadata {
-            return FrameMetadata(width, height, rotation)
-        }
+        fun build() = FrameMetadata(width, height, rotation)
     }
 }

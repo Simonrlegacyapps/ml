@@ -8,6 +8,9 @@ import android.util.AttributeSet
 import android.view.View
 import com.google.common.base.Preconditions
 import com.google.common.primitives.Ints
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class GraphicOverlay(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
     private val lock = Any()
@@ -36,8 +39,8 @@ class GraphicOverlay(context: Context?, attrs: AttributeSet?) : View(context, at
 
     /**
      * Base class for a custom graphics object to be rendered within the graphic overlay. Subclass
-     * this and implement the [Graphic.draw] method to define the graphics element. Add
-     * instances to the overlay using [GraphicOverlay.add].
+     * this and implement the Graphic.draw method to define the graphics element. Add
+     * instances to the overlay using GraphicOverlay.add.
      */
     abstract class Graphic(private val overlay: GraphicOverlay) {
         /**
@@ -54,9 +57,8 @@ class GraphicOverlay(context: Context?, attrs: AttributeSet?) : View(context, at
          * @param canvas drawing canvas
          */
         abstract fun draw(canvas: Canvas?)
-        protected fun drawRect(
-            canvas: Canvas, left: Float, top: Float, right: Float, bottom: Float, paint: Paint?
-        ) {
+
+        protected fun drawRect(canvas: Canvas, left: Float, top: Float, right: Float, bottom: Float, paint: Paint?) {
             canvas.drawRect(left, top, right, bottom, paint!!)
         }
 
@@ -65,42 +67,33 @@ class GraphicOverlay(context: Context?, attrs: AttributeSet?) : View(context, at
         }
 
         /** Adjusts the supplied value from the image scale to the view scale.  */
-        fun scale(imagePixel: Float): Float {
-            return imagePixel * overlay.scaleFactor
-        }
+        fun scale(imagePixel: Float) = imagePixel * overlay.scaleFactor
 
         /** Returns the application context of the app.  */
         val applicationContext: Context
             get() = overlay.context.applicationContext
 
-        fun isImageFlipped(): Boolean {
-            return overlay.isImageFlipped
-        }
+        fun isImageFlipped() = overlay.isImageFlipped
 
         /**
          * Adjusts the x coordinate from the image's coordinate system to the view coordinate system.
          */
         fun translateX(x: Float): Float {
-            return if (overlay.isImageFlipped) {
+            return if (overlay.isImageFlipped)
                 overlay.width - (scale(x) - overlay.postScaleWidthOffset)
-            } else {
+            else
                 scale(x) - overlay.postScaleWidthOffset
-            }
         }
 
         /**
          * Adjusts the y coordinate from the image's coordinate system to the view coordinate system.
          */
-        fun translateY(y: Float): Float {
-            return scale(y) - overlay.postScaleHeightOffset
-        }
+        fun translateY(y: Float) = scale(y) - overlay.postScaleHeightOffset
 
         /**
          * Returns a [Matrix] for transforming from image coordinates to overlay view coordinates.
          */
-        fun getTransformationMatrix(): Matrix {
-            return overlay.transformationMatrix
-        }
+        fun getTransformationMatrix()= overlay.transformationMatrix
 
         fun postInvalidate() {
             overlay.postInvalidate()
@@ -172,12 +165,12 @@ class GraphicOverlay(context: Context?, attrs: AttributeSet?) : View(context, at
     }
 
     /**
-     * Sets the source information of the image being processed by detectors, including size and
+     * Setting the source information of the image being processed by detectors, including size and
      * whether it is flipped, which informs how to transform image coordinates later.
      *
-     * @param imageWidth the width of the image sent to ML Kit detectors
-     * @param imageHeight the height of the image sent to ML Kit detectors
-     * @param isFlipped whether the image is flipped. Should set it to true when the image is from the
+     * imageWidth the width of the image sent to ML Kit detectors
+     * imageHeight the height of the image sent to ML Kit detectors
+     * isFlipped whether the image is flipped. Should set it to true when the image is from the
      * front camera.
      */
     fun setImageSourceInfo(imageWidth: Int, imageHeight: Int, isFlipped: Boolean) {
@@ -193,9 +186,8 @@ class GraphicOverlay(context: Context?, attrs: AttributeSet?) : View(context, at
     }
 
     private fun updateTransformationIfNeeded() {
-        if (!needUpdateTransformation || imageWidth <= 0 || imageHeight <= 0) {
-            return
-        }
+        if (!needUpdateTransformation || imageWidth <= 0 || imageHeight <= 0) return
+
         val viewAspectRatio = width.toFloat() / height
         val imageAspectRatio = imageWidth.toFloat() / imageHeight
         postScaleWidthOffset = 0f
@@ -212,16 +204,15 @@ class GraphicOverlay(context: Context?, attrs: AttributeSet?) : View(context, at
         transformationMatrix.reset()
         transformationMatrix.setScale(scaleFactor, scaleFactor)
         transformationMatrix.postTranslate(-postScaleWidthOffset, -postScaleHeightOffset)
-        if (isImageFlipped) {
+        if (isImageFlipped)
             transformationMatrix.postScale(-1f, 1f, width / 2f, height / 2f)
-        }
         needUpdateTransformation = false
     }
 
     /** Draws the overlay with its associated graphic objects.  */
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        synchronized(lock) {
+      synchronized(lock) {
             updateTransformationIfNeeded()
             for (graphic in graphics) {
                 graphic.draw(canvas)
