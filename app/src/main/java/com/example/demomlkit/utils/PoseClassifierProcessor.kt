@@ -25,7 +25,7 @@ class PoseClassifierProcessor @WorkerThread constructor(context: Context, isStre
     private var poseClassifier: PoseClassifier? = null
     private var lastRepResult: String? = null
 
-    private fun loadPoseSamples(context: Context) {
+    private fun loadPoseSamples(context: Context) { // here I am loading poses from .csv file
         val poseSamples: MutableList<PoseSample?> = ArrayList<PoseSample?>()
         try {
             val reader = BufferedReader(
@@ -33,17 +33,14 @@ class PoseClassifierProcessor @WorkerThread constructor(context: Context, isStre
             )
             var csvLine = reader.readLine()
             while (csvLine != null) {
-                // If line is not a valid {@link PoseSample}, we'll get null and skip adding to the list.
+                // If line is not a valid PoseSample, will get null and skip adding to the list.
                 val poseSample: PoseSample? = PoseSample.getPoseSample(csvLine, ",")
                 if (poseSample != null)
                     poseSamples.add(poseSample)
                 csvLine = reader.readLine()
             }
         } catch (e: IOException) {
-            Log.e(
-                TAG,
-                "Error when loading pose samples.\n$e"
-            )
+            Log.e(TAG, "Error when loading pose samples.\n$e")
         }
         poseClassifier = PoseClassifier(poseSamples)
         if (isStreamMode) {

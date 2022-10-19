@@ -51,6 +51,7 @@ fun getBitmap(image: ImageProxy): Bitmap? {
     val nv21Buffer: ByteBuffer? = yuv420ThreePlanesToNV21(
         image.image?.planes, image.width, image.height
     )
+
     return getBitmap(nv21Buffer, frameMetadata)
 }
 
@@ -58,9 +59,9 @@ fun getBitmap(image: ImageProxy): Bitmap? {
 fun getBitmap(data: ByteBuffer?, metadata: FrameMetadata): Bitmap? {
     data?.rewind()
     val imageInBuffer = data?.limit()?.let { ByteArray(it) }
-    if (imageInBuffer != null) {
+    if (imageInBuffer != null)
         data?.get(imageInBuffer, 0, imageInBuffer.size)
-    }
+
     try {
         val image = YuvImage(
             imageInBuffer, ImageFormat.NV21, metadata.width, metadata.height, null
@@ -95,9 +96,7 @@ private fun rotateBitmap(
     val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
 
     // Recycle the old bitmap if it has changed.
-    if (rotatedBitmap != bitmap) {
-        bitmap.recycle()
-    }
+    if (rotatedBitmap != bitmap) bitmap.recycle()
     return rotatedBitmap
 }
 
@@ -105,6 +104,7 @@ private fun yuv420ThreePlanesToNV21(
     yuv420888planes: Array<Plane>?, width: Int, height: Int
 ): ByteBuffer? {
     val imageSize = width * height
+
     val out = ByteArray(imageSize + 2 * (imageSize / 4))
     if (areUVPlanesNV21(yuv420888planes, width, height)) {
         // Copy the Y values.
@@ -150,8 +150,6 @@ private fun yuv420ThreePlanesToNV21(
 
 /**
  * Unpack an image plane into a byte array.
- *
- *
  * The input plane data will be copied in 'out', starting at 'offset' and every pixel will be
  * spaced by 'pixelStride'. Note that there is no row padding on the output.
  */
@@ -213,11 +211,7 @@ private fun areUVPlanesNV21(planes: Array<Plane>?, width: Int, height: Int): Boo
     return areNV21
 }
 
-fun average(a: PointF3D, b: PointF3D): PointF3D {
-    return PointF3D.from(
-        (a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f, (a.z + b.z) * 0.5f
-    )
-}
+fun average(a: PointF3D, b: PointF3D) = PointF3D.from((a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f, (a.z + b.z) * 0.5f)
 
 fun subtractAll(p: PointF3D, pointsList: MutableList<PointF3D>) {
     val iterator = pointsList.listIterator()
@@ -231,9 +225,7 @@ fun subtractAll(p: PointF3D, pointsList: MutableList<PointF3D>) {
     }
 }
 
-fun subtract(b: PointF3D, a: PointF3D): PointF3D {
-    return PointF3D.from(a.x - b.x, a.y - b.y, a.z - b.z)
-}
+fun subtract(b: PointF3D, a: PointF3D) = PointF3D.from(a.x - b.x, a.y - b.y, a.z - b.z)
 
 fun multiplyAll(pointsList: MutableList<PointF3D>, multiple: Float) {
     val iterator = pointsList.listIterator()
@@ -247,12 +239,10 @@ fun multiplyAll(pointsList: MutableList<PointF3D>, multiple: Float) {
     }
 }
 
-fun multiply(a: PointF3D, multiple: Float): PointF3D {
-    return PointF3D.from(a.x * multiple, a.y * multiple, a.z * multiple)
-}
-fun l2Norm2D(point: PointF3D): Float {
-    return Math.hypot(point.x.toDouble(), point.y.toDouble()).toFloat()
-}
+fun multiply(a: PointF3D, multiple: Float) = PointF3D.from(a.x * multiple, a.y * multiple, a.z * multiple)
+
+fun l2Norm2D(point: PointF3D) = Math.hypot(point.x.toDouble(), point.y.toDouble()).toFloat()
+
 fun multiplyAll(pointsList: MutableList<PointF3D>, multiple: PointF3D) {
     val iterator = pointsList.listIterator()
     while (iterator.hasNext()) {
@@ -264,15 +254,9 @@ fun multiplyAll(pointsList: MutableList<PointF3D>, multiple: PointF3D) {
         )
     }
 }
-fun multiply(a: PointF3D, multiple: PointF3D): PointF3D {
-    return PointF3D.from(
-        a.x * multiple.x, a.y * multiple.y, a.z * multiple.z
-    )
-}
 
-fun maxAbs(point: PointF3D): Float {
-    return Floats.max(Math.abs(point.x), Math.abs(point.y), Math.abs(point.z))
-}
-fun sumAbs(point: PointF3D): Float {
-    return Math.abs(point.x) + Math.abs(point.y) + Math.abs(point.z)
-}
+fun multiply(a: PointF3D, multiple: PointF3D) = PointF3D.from(a.x * multiple.x, a.y * multiple.y, a.z * multiple.z)
+
+fun maxAbs(point: PointF3D) = Floats.max(Math.abs(point.x), Math.abs(point.y), Math.abs(point.z))
+
+fun sumAbs(point: PointF3D) = Math.abs(point.x) + Math.abs(point.y) + Math.abs(point.z)

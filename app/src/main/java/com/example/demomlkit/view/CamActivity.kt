@@ -18,13 +18,12 @@ import com.example.demomlkit.databinding.ActivityCamBinding
 import com.example.demomlkit.utils.*
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.mlkit.common.MlKitException
-import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import java.util.concurrent.Executors
 
-class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener {
+class CamActivity : AppCompatActivity() {
     lateinit var binding: ActivityCamBinding
     private lateinit var poseDetector: PoseDetector
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
@@ -129,6 +128,7 @@ class CamActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener
 
         imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
             val mediaImage = imageProxy.image
+
             if (mediaImage != null) {
                 val rotationDegrees = imageProxy.imageInfo.rotationDegrees
 

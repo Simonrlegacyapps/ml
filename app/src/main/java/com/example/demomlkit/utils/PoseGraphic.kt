@@ -20,6 +20,7 @@ internal constructor(
     private val rescaleZForVisualization: Boolean,
     private val poseClassification: MutableList<String?>
 ) : GraphicOverlay.Graphic(overlay) {
+
     private var zMin = java.lang.Float.MAX_VALUE
     private var zMax = java.lang.Float.MIN_VALUE
     private val classificationTextPaint: Paint = Paint()
@@ -29,8 +30,9 @@ internal constructor(
     private val bluePaint: Paint
 
     init {
-        classificationTextPaint.color = Color.WHITE
+        classificationTextPaint.color = Color.RED
         classificationTextPaint.textSize = POSE_CLASSIFICATION_TEXT_SIZE
+        classificationTextPaint.strokeWidth = STROKE_WIDTH
         classificationTextPaint.setShadowLayer(5.0f, 0f, 0f, Color.BLACK)
 
         whitePaint = Paint()
@@ -154,7 +156,7 @@ internal constructor(
                 drawLine(canvas, rightAnkle, rightHeel, rightPaint)
                 drawLine(canvas, rightHeel, rightFootIndex, rightPaint)
 
-                // Draw inFrameLikelihood for all landmark points
+            // Draw inFrameLikelihood for all landmark points
 //            if (showInFrameLikelihood) {
 //                for (landmark in landmarks) {
 //                    canvas.drawText(
@@ -216,6 +218,6 @@ internal constructor(
         private val DOT_RADIUS = 8.0f
         private val IN_FRAME_LIKELIHOOD_TEXT_SIZE = 30.0f
         private val STROKE_WIDTH = 10.0f
-        private val POSE_CLASSIFICATION_TEXT_SIZE = 60.0f
+        private val POSE_CLASSIFICATION_TEXT_SIZE = 50.0f
     }
 }

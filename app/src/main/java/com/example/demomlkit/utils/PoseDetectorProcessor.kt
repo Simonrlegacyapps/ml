@@ -15,7 +15,7 @@ import java.util.ArrayList
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
-/** A processor to run pose detector. */
+/** my processor to run pose detector. */
 class PoseDetectorProcessor(
     private val context: Context,
     options: PoseDetector,
@@ -44,20 +44,16 @@ class PoseDetectorProcessor(
 
     @RequiresApi(Build.VERSION_CODES.N)
     override fun detectInImage(image: InputImage): Task<PoseWithClassification> {
-        return detector
-                .process(image)
-                .continueWith(
-                    classificationExecutor
-                ) { task ->
-                    val pose = task.result
-                    var classificationResult: MutableList<String?> = ArrayList()
-                    if (runClassification) {
-                        if (poseClassifierProcessor == null)
-                            poseClassifierProcessor = PoseClassifierProcessor(context, isStreamMode)
-                        classificationResult = poseClassifierProcessor!!.getPoseResult(pose)
-                    }
-                    PoseWithClassification(pose, classificationResult)
-                }
+        return detector.process(image).continueWith(classificationExecutor) { task ->
+            val pose = task.result
+            var classificationResult: MutableList<String?> = ArrayList()
+            if (runClassification) {
+                if (poseClassifierProcessor == null)
+                    poseClassifierProcessor = PoseClassifierProcessor(context, isStreamMode)
+                classificationResult = poseClassifierProcessor!!.getPoseResult(pose)
+            }
+            PoseWithClassification(pose, classificationResult)
+        }
     }
 
     override fun onSuccess(
@@ -84,24 +80,6 @@ class PoseDetectorProcessor(
         private val TAG = "PoseDetectorProcessor"
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 //    @RequiresApi(Build.VERSION_CODES.N)

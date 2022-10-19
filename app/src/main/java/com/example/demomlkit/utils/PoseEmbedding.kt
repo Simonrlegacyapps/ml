@@ -26,7 +26,7 @@ object PoseEmbedding {
         // Normalize scale.
         multiplyAll(normalizedLandmarks, 1 / getPoseSize(normalizedLandmarks))
         // Multiplication by 100 is not required, but makes it easier to debug.
-        multiplyAll(normalizedLandmarks, 100f)
+       // multiplyAll(normalizedLandmarks, 100f)
         return normalizedLandmarks
     }
 

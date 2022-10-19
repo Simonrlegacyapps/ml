@@ -62,8 +62,8 @@ abstract class VisionProcessorBase<T> protected constructor(context: Context) : 
         bitmap?.let { bit ->
             requestDetectInImage(
                 InputImage.fromBitmap(bit, 0),
-                graphicOverlay,  /* originalCameraImage= */
-                null,  /* shouldShowFps= */
+                graphicOverlay,
+                null,
                 false
             )
         }
@@ -103,21 +103,22 @@ abstract class VisionProcessorBase<T> protected constructor(context: Context) : 
         val startMs = SystemClock.elapsedRealtime()
         return detectInImage(image)
             .addOnSuccessListener(executor) { results: T ->
-                val currentLatencyMs : Long = SystemClock.elapsedRealtime() - startMs
-                numRuns++
-                frameProcessedInOneSecondInterval++
-                totalRunMs += currentLatencyMs
-                maxRunMs = Math.max(currentLatencyMs, maxRunMs)
-                minRunMs = Math.min(currentLatencyMs, minRunMs)
+                /**Uncomment this code block below*/
+//                val currentLatencyMs : Long = SystemClock.elapsedRealtime() - startMs
+//                numRuns++
+//                frameProcessedInOneSecondInterval++
+//                totalRunMs += currentLatencyMs
+//                maxRunMs = Math.max(currentLatencyMs, maxRunMs)
+//                minRunMs = Math.min(currentLatencyMs, minRunMs)
 
                 // Only log inference info once, per second. When frameProcessedInOneSecondInterval is
                 // equal to 1, it means this is the first frame processed during the current second.
-                if (frameProcessedInOneSecondInterval == 1) {
-                    val mi = ActivityManager.MemoryInfo()
-                    activityManager.getMemoryInfo(mi)
-                    val availableMegs: Long = mi.availMem / 0x100000L
-                    Log.d(TAG, "Memory available in system: $availableMegs MB")
-                }
+//                if (frameProcessedInOneSecondInterval == 1) {
+//                    val mi = ActivityManager.MemoryInfo()
+//                    activityManager.getMemoryInfo(mi)
+//                    val availableMegs: Long = mi.availMem / 0x100000L
+//                    Log.d(TAG, "Memory available in system: $availableMegs MB")
+//                }
                 graphicOverlay.clear()
                 if (originalCameraImage != null)
                     graphicOverlay.add(CameraImageGraphic(graphicOverlay, originalCameraImage))
@@ -134,7 +135,7 @@ abstract class VisionProcessorBase<T> protected constructor(context: Context) : 
             }.addOnFailureListener(executor) { e: Exception ->
                 graphicOverlay.clear()
                 graphicOverlay.postInvalidate()
-                val error = "Failed to process. Error: " + e.localizedMessage
+                val error = "Failed to process : " + e.localizedMessage
                 Toast.makeText(
                     graphicOverlay.context,
                     """

@@ -31,7 +31,7 @@ class RepetitionCounter @JvmOverloads constructor(
     }
 
     companion object {
-        // These thresholds can be tuned in conjunction with the Top K values in {PoseClassifier}.
+        // These thresholds can be tuned in conjunction with the Top K values in PoseClassifier.
         // The default Top K value is 10 so the range here is [0-10].
         private const val DEFAULT_ENTER_THRESHOLD = 6f
         private const val DEFAULT_EXIT_THRESHOLD = 4f

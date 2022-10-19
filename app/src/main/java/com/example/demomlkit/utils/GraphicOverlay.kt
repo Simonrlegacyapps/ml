@@ -93,7 +93,7 @@ class GraphicOverlay(context: Context?, attrs: AttributeSet?) : View(context, at
         /**
          * Returns a [Matrix] for transforming from image coordinates to overlay view coordinates.
          */
-        fun getTransformationMatrix()= overlay.transformationMatrix
+        fun getTransformationMatrix() = overlay.transformationMatrix
 
         fun postInvalidate() {
             overlay.postInvalidate()
