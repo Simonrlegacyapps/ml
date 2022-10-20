@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <queries>
@@ -32,9 +33,12 @@
         android:theme="@style/Theme.DemoMLKit"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".view.HomeActivity"
+            android:exported="false" />
+        <activity
             android:name=".view.CamActivity"
             android:exported="false"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait" />
         <activity
             android:name=".view.MainActivity"
             android:exported="true"

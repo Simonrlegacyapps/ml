@@ -1,9 +1,15 @@
 package com.example.demomlkit.view
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.content.ContentValues
+import android.content.pm.PackageManager
+import android.graphics.Point
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Log
+import android.util.Size
 import android.view.View
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -11,8 +17,15 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+//import androidx.camera.core.VideoCapture
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.video.MediaStoreOutputOptions
+import androidx.camera.video.Recording
+import androidx.camera.video.VideoRecordEvent
+import androidx.core.app.ActivityCompat
+//import androidx.camera.video.*
 import androidx.core.content.ContextCompat
+import androidx.core.util.Consumer
 import androidx.lifecycle.LifecycleOwner
 import com.example.demomlkit.databinding.ActivityCamBinding
 import com.example.demomlkit.utils.*
@@ -21,6 +34,11 @@ import com.google.mlkit.common.MlKitException
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.io.File
+import androidx.camera.core.*
 import java.util.concurrent.Executors
 
 class CamActivity : AppCompatActivity() {
@@ -33,6 +51,8 @@ class CamActivity : AppCompatActivity() {
     private var cameraProvider: ProcessCameraProvider? = null
     var flashOn: Boolean = false
     private var imageProcessor: VisionImageProcessor? = null
+    private lateinit var currentRecording : Recording
+    private lateinit var videoCapture: VideoCapture //<Recorder>
 
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,7 +109,7 @@ class CamActivity : AppCompatActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    @SuppressLint("UnsafeOptInUsageError")
+    @SuppressLint("UnsafeOptInUsageError", "RestrictedApi")
     private fun bindPreview(lensFacing: Int) {
         preview = Preview.Builder().build().also {
             it.setSurfaceProvider(binding.myCameraView.surfaceProvider)
@@ -99,7 +119,14 @@ class CamActivity : AppCompatActivity() {
             .requireLensFacing(lensFacing)
             .build()
 
-        // try
+//        val quality = Quality.HD
+//        val qualitySelector = QualitySelector.from(quality)
+//        val recorderBuilder = Recorder.Builder()
+//        recorderBuilder.setQualitySelector(qualitySelector)
+//        val recorder = recorderBuilder.build()
+//
+//        videoCapture = VideoCapture.withOutput(recorder)
+
 
         if (imageProcessor != null) imageProcessor!!.stop()
 
@@ -121,6 +148,10 @@ class CamActivity : AppCompatActivity() {
                 ).show()
                 return
             }
+
+        videoCapture = VideoCapture.Builder()
+            .setTargetResolution(Size(Point().x,Point().y))
+            .build()
 
         imageAnalysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -148,7 +179,61 @@ class CamActivity : AppCompatActivity() {
             }
         }
         cameraProvider?.unbindAll()
-        cameraProvider?.bindToLifecycle(this as LifecycleOwner, cameraSelector, preview, imageAnalysis)?.cameraControl?.enableTorch(flashOn)
+        cameraProvider?.bindToLifecycle(this as LifecycleOwner, cameraSelector, imageAnalysis, preview, videoCapture)?.cameraControl?.enableTorch(flashOn)
+
+        //startVideoRecording()
+        val file = File(externalMediaDirs.first(),
+            "${System.currentTimeMillis()}.mp4")
+
+        val outputFileOptions =  VideoCapture.OutputFileOptions.Builder(file).build()
+
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) return
+
+        videoCapture.startRecording(outputFileOptions,ContextCompat.getMainExecutor(this),object: VideoCapture.OnVideoSavedCallback{
+            override fun onVideoSaved(outputFileResults: VideoCapture.OutputFileResults) {
+                Log.d("TAGsavedvid01", "onVideoSaved: ${outputFileResults.savedUri}")
+            }
+
+            override fun onError(videoCaptureError: Int, message: String, cause: Throwable?) {
+                Log.d("TAGsavedvid02", "onVideoSaved: ${videoCaptureError}//${message}")
+            }
+        })
+
+    }
+
+    private fun startVideoRecording() {
+        // create MediaStoreOutputOptions for our recorder,, resulting the recording..
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Video.Media.DISPLAY_NAME, "${System.currentTimeMillis()}.mp4")
+        }
+
+        val mediaStoreOutput = MediaStoreOutputOptions.Builder(
+            this.contentResolver,
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+            .setContentValues(contentValues)
+            .build()
+
+
+//        currentRecording = videoCapture.output
+//            .prepareRecording(this, mediaStoreOutput)
+//            // .apply { if (audioEnabled) withAudioEnabled() }
+//            .start(ContextCompat.getMainExecutor(this), captureListener)
+    }
+
+    private val captureListener = Consumer<VideoRecordEvent> { event ->
+        // listen when video get stopped...
+        val durationInNanos = event.recordingStats.recordedDurationNanos
+        val durationInSeconds = durationInNanos/1000/1000/1000.0
+
+        if (event is VideoRecordEvent.Finalize) {
+            // display the captured video
+            Log.d("TAGdisplayvid01", "${event.outputResults.outputUri}")
+            Log.d("TAGdisplayvid02", "${durationInSeconds}")
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
@@ -165,6 +250,13 @@ class CamActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         imageProcessor?.run { this.stop() }
+    }
+
+    @SuppressLint("UnsafeOptInUsageError", "RestrictedApi")
+    override fun onStop() {
+        super.onStop()
+        videoCapture.stopRecording()
+        //currentRecording.stop()
     }
 }
 

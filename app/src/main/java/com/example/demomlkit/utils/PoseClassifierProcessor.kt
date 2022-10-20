@@ -63,7 +63,7 @@ class PoseClassifierProcessor @WorkerThread constructor(context: Context, isStre
         val result: MutableList<String?> = ArrayList()
         var classification: ClassificationResult = poseClassifier!!.classify(pose)
 
-        // Update {@link RepetitionCounter}s if {@code isStreamMode}.
+        // Update { RepetitionCounter } if {@code isStreamMode}.
         if (isStreamMode) {
             // Feed pose to smoothing even if no pose found.
             classification = emaSmoothing!!.getSmoothedResult(classification)

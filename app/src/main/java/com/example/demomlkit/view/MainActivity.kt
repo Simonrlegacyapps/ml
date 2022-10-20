@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (allPermissionsGranted()) {
-                startActivity(Intent(this, CamActivity::class.java))
+                startActivity(Intent(this, HomeActivity::class.java))
                 finish()
             } else toast(this, "Permissions not granted by the user.")
         }
@@ -58,12 +58,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkUserStatus() {
         if (PrefManager.getString("isLoggedIn") == "yes") {
-            startActivity(Intent(this, CamActivity::class.java))
+            startActivity(Intent(this, HomeActivity::class.java))
             finish()
         } else {
             binding.loginButton.setOnClickListener {
                 if (allPermissionsGranted()) {
-                    startActivity(Intent(this, CamActivity::class.java))
+                    startActivity(Intent(this, HomeActivity::class.java))
                     finish()
                 } else ActivityCompat.requestPermissions(
                     this,
