@@ -23,7 +23,7 @@ import androidx.camera.video.MediaStoreOutputOptions
 import androidx.camera.video.Recording
 import androidx.camera.video.VideoRecordEvent
 import androidx.core.app.ActivityCompat
-//import androidx.camera.video.*
+import androidx.camera.video.*
 import androidx.core.content.ContextCompat
 import androidx.core.util.Consumer
 import androidx.lifecycle.LifecycleOwner
@@ -39,6 +39,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 import androidx.camera.core.*
+import androidx.camera.video.VideoCapture
 import java.util.concurrent.Executors
 
 class CamActivity : AppCompatActivity() {
@@ -52,7 +53,7 @@ class CamActivity : AppCompatActivity() {
     var flashOn: Boolean = false
     private var imageProcessor: VisionImageProcessor? = null
     private lateinit var currentRecording : Recording
-    private lateinit var videoCapture: VideoCapture //<Recorder>
+    private lateinit var videoCapture: VideoCapture<Recorder>
 
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -119,14 +120,12 @@ class CamActivity : AppCompatActivity() {
             .requireLensFacing(lensFacing)
             .build()
 
-//        val quality = Quality.HD
-//        val qualitySelector = QualitySelector.from(quality)
-//        val recorderBuilder = Recorder.Builder()
-//        recorderBuilder.setQualitySelector(qualitySelector)
-//        val recorder = recorderBuilder.build()
-//
-//        videoCapture = VideoCapture.withOutput(recorder)
+        val qualitySelector = QualitySelector.from(Quality.HD, FallbackStrategy.higherQualityOrLowerThan(Quality.SD))
+        val recorder = Recorder.Builder()
+        .setQualitySelector(qualitySelector)
+        .build()
 
+        videoCapture = VideoCapture.withOutput(recorder)
 
         if (imageProcessor != null) imageProcessor!!.stop()
 
@@ -149,9 +148,9 @@ class CamActivity : AppCompatActivity() {
                 return
             }
 
-        videoCapture = VideoCapture.Builder()
-            .setTargetResolution(Size(Point().x,Point().y))
-            .build()
+//        videoCapture = VideoCapture.Builder()
+//            .setTargetResolution(Size(Point().x,Point().y))
+//            .build()
 
         imageAnalysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -159,6 +158,8 @@ class CamActivity : AppCompatActivity() {
 
         imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
             val mediaImage = imageProxy.image
+
+            Log.d("TAG_Image_Proxy", "bindPreview: ${getBitmap(imageProxy)}")
 
             if (mediaImage != null) {
                 val rotationDegrees = imageProxy.imageInfo.rotationDegrees
@@ -178,31 +179,33 @@ class CamActivity : AppCompatActivity() {
                 }
             }
         }
-        cameraProvider?.unbindAll()
-        cameraProvider?.bindToLifecycle(this as LifecycleOwner, cameraSelector, imageAnalysis, preview, videoCapture)?.cameraControl?.enableTorch(flashOn)
 
-        //startVideoRecording()
-        val file = File(externalMediaDirs.first(),
-            "${System.currentTimeMillis()}.mp4")
+        cameraProvider?.unbindAll() //videoCapture
+        cameraProvider?.bindToLifecycle(this as LifecycleOwner, cameraSelector, imageAnalysis, preview)?.cameraControl?.enableTorch(flashOn)
 
-        val outputFileOptions =  VideoCapture.OutputFileOptions.Builder(file).build()
+       // startVideoRecording()
 
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.RECORD_AUDIO
-            ) != PackageManager.PERMISSION_GRANTED
-        ) return
+        ///
+//        val file = File(externalMediaDirs.first(),
+//            "${System.currentTimeMillis()}.mp4")
 
-        videoCapture.startRecording(outputFileOptions,ContextCompat.getMainExecutor(this),object: VideoCapture.OnVideoSavedCallback{
-            override fun onVideoSaved(outputFileResults: VideoCapture.OutputFileResults) {
-                Log.d("TAGsavedvid01", "onVideoSaved: ${outputFileResults.savedUri}")
-            }
+//        val outputFileOptions =  VideoCapture.OutputFileOptions.Builder(file).build()
 
-            override fun onError(videoCaptureError: Int, message: String, cause: Throwable?) {
-                Log.d("TAGsavedvid02", "onVideoSaved: ${videoCaptureError}//${message}")
-            }
-        })
-
+//        if (ActivityCompat.checkSelfPermission(
+//                this,
+//                Manifest.permission.RECORD_AUDIO
+//            ) != PackageManager.PERMISSION_GRANTED
+//        ) return
+//
+//        videoCapture.startRecording(outputFileOptions,ContextCompat.getMainExecutor(this),object: VideoCapture.OnVideoSavedCallback{
+//            override fun onVideoSaved(outputFileResults: VideoCapture.OutputFileResults) {
+//                Log.d("TAGsavedvid01", "onVideoSaved: ${outputFileResults.savedUri}")
+//            }
+//
+//            override fun onError(videoCaptureError: Int, message: String, cause: Throwable?) {
+//                Log.d("TAGsavedvid02", "onVideoSaved: ${videoCaptureError}//${message}")
+//            }
+//        })
     }
 
     private fun startVideoRecording() {
@@ -211,17 +214,25 @@ class CamActivity : AppCompatActivity() {
             put(MediaStore.Video.Media.DISPLAY_NAME, "${System.currentTimeMillis()}.mp4")
         }
 
-        val mediaStoreOutput = MediaStoreOutputOptions.Builder(
-            this.contentResolver,
-            MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+        val mediaStoreOutput = MediaStoreOutputOptions
+            .Builder(contentResolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
             .setContentValues(contentValues)
             .build()
 
 
-//        currentRecording = videoCapture.output
-//            .prepareRecording(this, mediaStoreOutput)
-//            // .apply { if (audioEnabled) withAudioEnabled() }
-//            .start(ContextCompat.getMainExecutor(this), captureListener)
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            toast(this, "Give Audio Permission")
+            return
+        }
+
+        currentRecording = videoCapture.output
+            .prepareRecording(this, mediaStoreOutput)
+            .withAudioEnabled()
+            .start(ContextCompat.getMainExecutor(this), captureListener)
     }
 
     private val captureListener = Consumer<VideoRecordEvent> { event ->
@@ -229,10 +240,21 @@ class CamActivity : AppCompatActivity() {
         val durationInNanos = event.recordingStats.recordedDurationNanos
         val durationInSeconds = durationInNanos/1000/1000/1000.0
 
-        if (event is VideoRecordEvent.Finalize) {
-            // display the captured video
-            Log.d("TAGdisplayvid01", "${event.outputResults.outputUri}")
-            Log.d("TAGdisplayvid02", "${durationInSeconds}")
+        when(event) {
+            is VideoRecordEvent.Start -> {
+                Toast.makeText(applicationContext, "Capture Started", Toast.LENGTH_SHORT).show()
+                // update app internal recording state
+            }
+            is VideoRecordEvent.Finalize -> {
+                if (!event.hasError()) {
+                    Toast.makeText(applicationContext, "Video capture succeeded: ${event.outputResults.outputUri}", Toast.LENGTH_SHORT).show()
+                } else {
+                    // update app state when the capture failed.
+//                    recording?.close()
+//                    recording = null
+                    Toast.makeText(applicationContext, "Video capture ends with error: ${event.error}", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
@@ -255,8 +277,8 @@ class CamActivity : AppCompatActivity() {
     @SuppressLint("UnsafeOptInUsageError", "RestrictedApi")
     override fun onStop() {
         super.onStop()
-        videoCapture.stopRecording()
-        //currentRecording.stop()
+//        videoCapture.stopRecording()
+    currentRecording.stop()
     }
 }
 
