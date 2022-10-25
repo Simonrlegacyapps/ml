@@ -3,7 +3,6 @@ package com.example.demomlkit.utils
 /** Describing a frame info.  */
 class FrameMetadata private constructor(val width: Int, val height: Int, val rotation: Int) {
 
-    /** Builder of [FrameMetadata].  */
     class Builder {
         private var width = 0
         private var height = 0

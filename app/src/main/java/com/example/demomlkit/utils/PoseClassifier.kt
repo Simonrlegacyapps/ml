@@ -9,11 +9,9 @@ import com.google.mlkit.vision.pose.Pose
 import java.lang.Float.max
 import java.util.*
 
-
 class PoseClassifier(
     poseSamples: List<PoseSample?>, maxDistanceTopK: Int,
-    meanDistanceTopK: Int, axesWeights: PointF3D
-) {
+    meanDistanceTopK: Int, axesWeights: PointF3D) {
     private val poseSamples: List<PoseSample?>
     private val maxDistanceTopK: Int
     private val meanDistanceTopK: Int
@@ -24,8 +22,7 @@ class PoseClassifier(
         MAX_DISTANCE_TOP_K,
         MEAN_DISTANCE_TOP_K,
         AXES_WEIGHTS
-    ) {
-    }
+    )
 
     /**
      * Returning the max range of confidence values.
@@ -52,7 +49,6 @@ class PoseClassifier(
         multiplyAll(flippedLandmarks, PointF3D.from(-1f, 1f, 1f))
         val embedding: List<PointF3D> = getPoseEmbedding(landmarks)
         val flippedEmbedding: List<PointF3D> = getPoseEmbedding(flippedLandmarks)
-
 
         // Classification is done in two stages:
         //  * First we pick top-K samples by MAX distance. It allows to remove samples that are almost

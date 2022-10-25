@@ -43,19 +43,7 @@ class GraphicOverlay(context: Context?, attrs: AttributeSet?) : View(context, at
      * instances to the overlay using GraphicOverlay.add.
      */
     abstract class Graphic(private val overlay: GraphicOverlay) {
-        /**
-         * Draw the graphic on the supplied canvas. Drawing should use the following methods to convert
-         * to view coordinates for the graphics that are drawn:
-         *
-         *
-         *  1. [Graphic.scale] adjusts the size of the supplied value from the image
-         * scale to the view scale.
-         *  1. [Graphic.translateX] and [Graphic.translateY] adjust the
-         * coordinate from the image's coordinate system to the view coordinate system.
-         *
-         *
-         * @param canvas drawing canvas
-         */
+
         abstract fun draw(canvas: Canvas?)
 
         protected fun drawRect(canvas: Canvas, left: Float, top: Float, right: Float, bottom: Float, paint: Paint?) {

@@ -48,9 +48,6 @@ repositories {
 }
 
 dependencies {
-    // cameraView lib
-    //implementation 'com.otaliastudios:cameraview:2.7.2'
-
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'androidx.annotation:annotation:1.2.0'
@@ -91,7 +88,7 @@ dependencies {
 
     // to use the base sdk (faster, ~30-45fps)
     implementation 'com.google.mlkit:pose-detection:18.0.0-beta3'
-    // If you want to use the accurate sdk (slower, but accurate)
+    // to use the accurate sdk (slower, but accurate)
 //    implementation 'com.google.mlkit:pose-detection-accurate:18.0.0-beta3'
 
     implementation 'com.google.code.gson:gson:2.9.0'
@@ -118,7 +115,6 @@ dependencies {
     implementation "androidx.camera:camera-view:1.2.0-alpha01"
     implementation "androidx.camera:camera-extensions:1.2.0-alpha01"
 
-
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.1'
 
     // On Device Machine Learnings
@@ -132,7 +128,21 @@ dependencies {
     androidTestImplementation 'androidx.test:rules:1.4.0'
 
     // Assertions
-    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+    //androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+
+    // HBRecorder
+    implementation 'com.github.HBiSoft:HBRecorder:2.0.5'
+
+
+    // bitmap array to video
+    //implementation 'com.github.israel-fl:bitmap2video:2.0.0'
+
+
+    // record video
+    implementation 'org.jcodec:jcodec:0.2.5'
+    implementation 'org.jcodec:jcodec-android:0.2.5'
+    implementation 'org.jcodec:jcodec-javase:0.2.5'
+    implementation 'com.writingminds:FFmpegAndroid:0.3.2'
 }
 
 configurations {

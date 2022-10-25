@@ -25,6 +25,31 @@ class PoseClassifierProcessor @WorkerThread constructor(context: Context, isStre
     private var poseClassifier: PoseClassifier? = null
     private var lastRepResult: String? = null
 
+    companion object {
+        private const val TAG = "PoseClassifierProcessor"
+        private const val POSE_SAMPLES_FILE = "pose/fitness_pose_samples.csv"
+
+        // Specify classes for which we want rep counting.
+        // These are the labels in the given {@code POSE_SAMPLES_FILE}. You can set your own class labels
+        // for your pose samples.
+        private const val PUSHUPS_CLASS = "pushups_down"
+        private const val SQUATS_CLASS = "squats_down"
+        private val POSE_CLASSES = arrayOf(
+            PUSHUPS_CLASS, SQUATS_CLASS
+        )
+    }
+
+    init {
+        Preconditions.checkState(Looper.myLooper() != Looper.getMainLooper())
+        this.isStreamMode = isStreamMode
+        if (isStreamMode) {
+            emaSmoothing = EMASmoothing()
+            repCounters = ArrayList<RepetitionCounter>()
+            lastRepResult = ""
+        }
+        loadPoseSamples(context)
+    }
+
     private fun loadPoseSamples(context: Context) { // here I am loading poses from .csv file
         val poseSamples: MutableList<PoseSample?> = ArrayList<PoseSample?>()
         try {
@@ -63,7 +88,7 @@ class PoseClassifierProcessor @WorkerThread constructor(context: Context, isStre
         val result: MutableList<String?> = ArrayList()
         var classification: ClassificationResult = poseClassifier!!.classify(pose)
 
-        // Update { RepetitionCounter } if {@code isStreamMode}.
+        // Update {RepetitionCounter} if {isStreamMode}.
         if (isStreamMode) {
             // Feed pose to smoothing even if no pose found.
             classification = emaSmoothing!!.getSmoothedResult(classification)
@@ -79,7 +104,7 @@ class PoseClassifierProcessor @WorkerThread constructor(context: Context, isStre
                 if (repsAfter > repsBefore) {
                     // Play a fun beep when rep counter updates.
                     val tg = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
-                    tg.startTone(ToneGenerator.TONE_PROP_BEEP)
+                    tg.startTone(ToneGenerator.TONE_PROP_ACK)
                     lastRepResult = String.format(
                         Locale.US, "%s : %d reps", repCounter.className, repsAfter
                     )
@@ -99,30 +124,5 @@ class PoseClassifierProcessor @WorkerThread constructor(context: Context, isStre
             result.add(maxConfidenceClassResult)
         }
         return result
-    }
-
-    companion object {
-        private const val TAG = "PoseClassifierProcessor"
-        private const val POSE_SAMPLES_FILE = "pose/fitness_pose_samples.csv"
-
-        // Specify classes for which we want rep counting.
-        // These are the labels in the given {@code POSE_SAMPLES_FILE}. You can set your own class labels
-        // for your pose samples.
-        private const val PUSHUPS_CLASS = "pushups_down"
-        private const val SQUATS_CLASS = "squats_down"
-        private val POSE_CLASSES = arrayOf(
-            PUSHUPS_CLASS, SQUATS_CLASS
-        )
-    }
-
-    init {
-        Preconditions.checkState(Looper.myLooper() != Looper.getMainLooper())
-        this.isStreamMode = isStreamMode
-        if (isStreamMode) {
-            emaSmoothing = EMASmoothing()
-            repCounters = ArrayList<RepetitionCounter>()
-            lastRepResult = ""
-        }
-        loadPoseSamples(context)
     }
 }
