@@ -18,12 +18,20 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:listitem="@layout/category_custom_layout"/>
 
-    <androidx.camera.view.PreviewView
+<!--    <androidx.camera.view.PreviewView-->
+<!--        android:id="@+id/myCameraView"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="0dp"-->
+<!--        app:layout_constraintBottom_toTopOf="@+id/llButtonsLayout"-->
+<!--        app:layout_constraintTop_toBottomOf="@+id/rvCategories" />-->
+
+    <com.otaliastudios.cameraview.CameraView
         android:id="@+id/myCameraView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        app:cameraAudio="off"
         app:layout_constraintBottom_toTopOf="@+id/llButtonsLayout"
-        app:layout_constraintTop_toBottomOf="@+id/rvCategories" />
+        app:layout_constraintTop_toBottomOf="@+id/rvCategories"/>
 
     <LinearLayout
         android:id="@+id/llButtonsLayout"

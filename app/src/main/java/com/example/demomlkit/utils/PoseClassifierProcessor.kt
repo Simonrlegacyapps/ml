@@ -103,8 +103,8 @@ class PoseClassifierProcessor @WorkerThread constructor(context: Context, isStre
                 val repsAfter = repCounter.addClassificationResult(classification)
                 if (repsAfter > repsBefore) {
                     // Play a fun beep when rep counter updates.
-                    val tg = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
-                    tg.startTone(ToneGenerator.TONE_PROP_ACK)
+                    //val tg = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+                  //  tg.startTone(ToneGenerator.TONE_PROP_ACK)
                     lastRepResult = String.format(
                         Locale.US, "%s : %d reps", repCounter.className, repsAfter
                     )

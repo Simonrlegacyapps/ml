@@ -1,37 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/parentLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
-    android:fitsSystemWindows="true">
+    android:background="@color/white">
 
-    <androidx.camera.view.PreviewView
+    <!--    <androidx.camera.view.PreviewView-->
+    <!--        android:id="@+id/myCameraView"-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        android:layout_height="match_parent" />-->
+
+    <com.otaliastudios.cameraview.CameraView
         android:id="@+id/myCameraView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        app:cameraAudio="off"
+        app:cameraEngine="camera2" />
 
     <com.example.demomlkit.utils.GraphicOverlay
         android:id="@+id/graphicOverlay"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintLeft_toLeftOf="@id/myCameraView"
-        app:layout_constraintRight_toRightOf="@id/myCameraView"
-        app:layout_constraintTop_toTopOf="@id/myCameraView"
-        app:layout_constraintBottom_toBottomOf="@id/myCameraView"/>
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
     <androidx.cardview.widget.CardView
         android:id="@+id/cardView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="@dimen/_10sdp"
+        android:layout_gravity="end"
         android:layout_marginTop="@dimen/_16sdp"
+        android:layout_marginEnd="@dimen/_10sdp"
+        android:visibility="gone"
         app:cardCornerRadius="@dimen/_16sdp"
-        app:cardElevation="@dimen/_6sdp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:cardElevation="@dimen/_6sdp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/cl"
@@ -117,9 +119,10 @@
         android:textColor="@color/red"
         android:textSize="@dimen/_12ssp"
         android:textStyle="bold"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</FrameLayout>
 
 
     <!-- <ImageView

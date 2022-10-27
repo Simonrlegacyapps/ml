@@ -2,7 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.example.demomlkit">
-    <!-- <uses-feature android:name="android.hardware.camera" /> -->
+
+    <uses-feature android:name="android.hardware.camera" />
     <uses-feature
         android:name="android.hardware.camera.autofocus"
         android:required="true" />
@@ -10,7 +11,8 @@
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
-    <uses-permission android:name="android.permission.STORAGE"/>
+    <uses-permission android:name="android.permission.STORAGE" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.CAMERA" />
@@ -33,6 +35,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DemoMLKit"
         android:usesCleartextTraffic="true">
+        <activity
+            android:name=".view.VideoActivity"
+            android:exported="false" />
+        <activity
+            android:name=".view.RecordedVideoListActivity"
+            android:exported="false" />
         <activity
             android:name=".view.HomeActivity"
             android:exported="false" />

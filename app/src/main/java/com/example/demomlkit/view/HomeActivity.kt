@@ -35,7 +35,7 @@ class HomeActivity : AppCompatActivity(), CategoriesAdapter.OnCatClickInterface 
             startActivity(Intent(this, CamActivity::class.java))
         }
         binding.goToListButton.setOnClickListener {
-            //startActivity(Intent(this, CamActivity::class.java))
+            startActivity(Intent(this, RecordedVideoListActivity::class.java))
         }
     }
 
@@ -45,18 +45,20 @@ class HomeActivity : AppCompatActivity(), CategoriesAdapter.OnCatClickInterface 
     }
 
     private fun startCamera() {
-        cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-        cameraProvider = cameraProviderFuture.get()
-
-        cameraProviderFuture.addListener({
-            bindPreview()
-        }, ContextCompat.getMainExecutor(this))
+        binding.myCameraView.setLifecycleOwner(this)
+        binding.myCameraView
+//        cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+//        cameraProvider = cameraProviderFuture.get()
+//
+//        cameraProviderFuture.addListener({
+//            bindPreview()
+//        }, ContextCompat.getMainExecutor(this))
     }
 
     private fun bindPreview() {
-        val preview = Preview.Builder().build().also {
-            it.setSurfaceProvider(binding.myCameraView.surfaceProvider)
-        }
+//        val preview = Preview.Builder().build().also {
+//            it.setSurfaceProvider(binding.myCameraView.surfaceProvider)
+//        }
 
         val cameraSelector = CameraSelector.Builder()
             .requireLensFacing(CameraSelector.LENS_FACING_BACK)
@@ -71,7 +73,7 @@ class HomeActivity : AppCompatActivity(), CategoriesAdapter.OnCatClickInterface 
 //        videoCapture = VideoCapture.withOutput(recorder)
 
         cameraProvider?.unbindAll()
-        cameraProvider?.bindToLifecycle(this as LifecycleOwner, cameraSelector, preview)
+        cameraProvider?.bindToLifecycle(this as LifecycleOwner, cameraSelector)
 
     //    startVideoRecording()
     }

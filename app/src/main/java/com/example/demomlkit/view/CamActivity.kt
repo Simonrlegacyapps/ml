@@ -1,34 +1,32 @@
 package com.example.demomlkit.view
 
 //import androidx.camera.core.VideoCapture
-
 import android.Manifest
+import android.R.attr.data
 import android.annotation.SuppressLint
-
 import android.content.ContentValues
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.os.Build
-import android.os.Bundle
-import android.os.Environment
+import android.graphics.ImageFormat
+import android.os.*
 import android.provider.MediaStore
 import android.util.Log
+import android.util.Size
 import android.view.View
 import android.widget.Toast
 import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.Preview
+import androidx.camera.core.*
+import androidx.camera.core.impl.CaptureConfig
+import androidx.camera.core.impl.VideoCaptureConfig
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.video.*
+import androidx.camera.video.Quality
+import androidx.camera.video.QualitySelector
+//import androidx.camera.video.*
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.os.HandlerCompat
 import androidx.core.util.Consumer
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.withCreated
 import com.example.demomlkit.databinding.ActivityCamBinding
 import com.example.demomlkit.utils.*
 import com.google.common.util.concurrent.ListenableFuture
@@ -36,18 +34,20 @@ import com.google.mlkit.common.MlKitException
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
-import org.jcodec.api.awt.AWTSequenceEncoder
-import org.jcodec.common.AndroidUtil
-import org.jcodec.common.io.NIOUtils
-import org.jcodec.common.model.ColorSpace.RGB
-import org.jcodec.common.model.Picture
-import org.jcodec.common.model.Rational
-import java.io.File
-import java.lang.System.out
-import java.text.SimpleDateFormat
+import com.otaliastudios.cameraview.CameraListener
+import com.otaliastudios.cameraview.PictureResult
+import com.otaliastudios.cameraview.VideoResult
+import com.otaliastudios.cameraview.controls.Flash
+import com.otaliastudios.cameraview.controls.Mode
+import com.otaliastudios.cameraview.controls.VideoCodec
+import com.otaliastudios.cameraview.size.SizeSelector
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.*
 import java.util.*
+import java.util.concurrent.Executor
 import java.util.concurrent.Executors
-import kotlin.collections.ArrayList
+
 
 class CamActivity : AppCompatActivity() {
 
@@ -60,8 +60,8 @@ class CamActivity : AppCompatActivity() {
     private var cameraProvider: ProcessCameraProvider? = null
     var flashOn: Boolean = false
     private var imageProcessor: VisionImageProcessor? = null
-    lateinit var bitmapArray : ArrayList<Bitmap>
-   // lateinit var saveVidDialog : AlertDialog
+//    lateinit var bitmapArray : ArrayList<Bitmap>
+    // lateinit var saveVidDialog : AlertDialog
 
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,67 +69,60 @@ class CamActivity : AppCompatActivity() {
         binding = ActivityCamBinding.inflate(layoutInflater)
         setContentView(binding.root)
         PrefManager.putString("isLoggedIn", "yes")
-        bitmapArray = ArrayList()
+
+//        binding.myCameraView.setLifecycleOwner(this)
+
+//        val file = File(externalMediaDirs.first(),
+//            "${System.currentTimeMillis()}.mp4")
+//
+//        binding.myCameraView.mode = Mode.VIDEO
+//        binding.myCameraView.takeVideo(file)
+//        bitmapArray = ArrayList()
         initListeners()
-    }
-
-    fun creteRootPath(): File? {
-        var file: File? = null
-        try {
-            file = File(getExternalFilesDir(null).toString() + SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Date()) +"-mlkit.mp4")
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-//                file =  File(
-//                    applicationContext
-//                    .getExternalFilesDir("")
-//                    .toString() + File.separator + SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Date()) +"-mlkit.mp4")
-//            } else {
-//                file = File(Environment
-//                    .getExternalStorageDirectory()
-//                    .absolutePath.toString()
-//                        + File.separator + SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Date()) + "-mlkit.mp4")
+//val photoFile = File(
+//            this.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+//            "${System.currentTimeMillis()}.jpg"
+//        )
+//
+//        binding.myCameraView.addCameraListener(object : CameraListener() {
+//            override fun onVideoTaken(result: VideoResult) {
+//                binding.myCameraView.flash = Flash.OFF
+//
+//                val fOut = openFileOutput(File(externalMediaDirs.first(), "${System.currentTimeMillis()}.mp4").name, MODE_WORLD_READABLE)
+//                fOut.write(result.file.readBytes())
+//                fOut.close()
+//
+//                val newfile: File
+//
+//                try {
+//                    val currentFile = File(result.file.path)
+//                    val fileName = currentFile.name
+//                   // val directory = ContextWrapper(this@CamActivity).getDir("videoDir", Context.MODE_PRIVATE)
+//                    newfile = File(externalMediaDirs.first(), fileName)
+//                    // File(directory, fileName)
+//                    if (currentFile.exists()) {
+//                        val inputStream: InputStream = FileInputStream(currentFile)
+//                        val outStream: OutputStream = FileOutputStream(newfile)
+//
+//                        // Copy the bits from instream to outstream
+//                        val buf = ByteArray(1024)
+//                        var len: Int
+//                        while (inputStream.read(buf).also { len = it } > 0) {
+//                            outStream.write(buf, 0, len)
+//                        }
+//                        inputStream.close()
+//                        outStream.close()
+//                        Log.v("", "Video file saved successfully.")
+//                    } else {
+//                        Log.v("", "Video saving failed. Source file missing.")
+//                    }
+//                } catch (e: java.lang.Exception) {
+//                    e.printStackTrace()
+//                }
 //            }
-//            if (file != null && file.exists()) file.mkdirs()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            file // it will return null
-        }
-        return file
+//        })
     }
 
-    fun convertImagesToVideo() {
-        try {
-            //Rational(1, 1). SequenceEncoder
-            val output = creteRootPath()
-            val enc = AWTSequenceEncoder.createWithFps(
-                NIOUtils.writableChannel(output), Rational.R(8, 2)
-            )
-            for (bitmap in bitmapArray) {
-                enc.encodeNativeFrame(fromBitmaps(bitmap))
-            }
-            enc.finish()
-        } finally {
-            NIOUtils.closeQuietly(out)
-           // saveVidDialog.dismiss()
-            toast(this@CamActivity, "Saved")
-            finish()
-        }
-    }
-
-    fun fromBitmaps(src: Bitmap): Picture {
-        val dst = Picture.create(src.width, src.height, RGB)
-        AndroidUtil.fromBitmap(src, dst)
-        return dst
-    }
-
-    override fun onBackPressed() {
-      //  super.onBackPressed()
-//        val dialogBuilder = AlertDialog.Builder(this@CamActivity)
-//        saveVidDialog = dialogBuilder.create()
-//        saveVidDialog.setTitle("Saving video..")
-//        saveVidDialog.show()
-        toast(this@CamActivity, "Saving video..")
-        convertImagesToVideo()
-    }
 
 //    private fun recordScreen() {
 //        mMediaRecorder = MediaRecorder()
@@ -294,9 +287,9 @@ class CamActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.R)
     @SuppressLint("UnsafeOptInUsageError", "RestrictedApi")
     private fun bindPreview(lensFacing: Int) {
-        preview = Preview.Builder().build().also {
-            it.setSurfaceProvider(binding.myCameraView.surfaceProvider)
-        }
+//        preview = Preview.Builder().build().also {
+//            it.setSurfaceProvider(binding.myCameraView.surfaceProvider)
+//        }
 
 //        cameraSelector = CameraSelector.Builder()
 //            .requireLensFacing(lensFacing)
@@ -308,7 +301,7 @@ class CamActivity : AppCompatActivity() {
 //            .setQualitySelector(qualitySelector)
 //            .build()
 //
-//        videoCapture = VideoCapture.withOutput(recorder)
+//        val videoCapture = VideoCapture.withOutput(recorder)
 
         if (imageProcessor != null) imageProcessor!!.stop()
 
@@ -332,16 +325,21 @@ class CamActivity : AppCompatActivity() {
                 return
             }
 
-//        videoCapture = VideoCapture.Builder()
-//            .setTargetResolution(Size(Point().x,Point().y))
-//            .build()
+        val videoCapture = VideoCapture.Builder()
+            .setDefaultCaptureConfig(CaptureConfig.defaultEmptyCaptureConfig())
+            .setBackgroundExecutor(Dispatchers.IO as Executor)
+//           .setTargetAspectRatio(AspectRatio.Rati)
+//            .setVideoFrameRate(60)
+            //.setTargetResolution(Size(1080, 1920))  //Point().x,Point().y))
+              .setTargetResolution(Size(binding.myCameraView.measuredWidth, binding.myCameraView.measuredHeight))
+            .build()
 
         imageAnalysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
 
         imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
-            bitmapArray.add(getBitmap(imageProxy)!!)
+            //  bitmapArray.add(getBitmap(imageProxy)!!)
 
             if (imageProxy.image != null) {
                 val rotationDegrees = imageProxy.imageInfo.rotationDegrees
@@ -365,102 +363,115 @@ class CamActivity : AppCompatActivity() {
                     imageProcessor?.processImageProxy(imageProxy, binding.graphicOverlay)
                 } catch (e: MlKitException) {
                     Log.e("TAG", "Failed to process image. Error: " + e.localizedMessage)
-                    Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT)
+                        .show()
                 }
             }
         }
 
-       // cameraProvider?.unbindAll() //videoCapture
-        cameraProvider?.bindToLifecycle(
-            this as LifecycleOwner,
-            cameraSelector,
-            imageAnalysis,
-            preview
-        )?.cameraControl?.enableTorch(flashOn)
-
-        // startVideoRecording()
-
-        ///
-//        val file = File(externalMediaDirs.first(),
-//            "${System.currentTimeMillis()}.mp4")
-
-//        val outputFileOptions =  VideoCapture.OutputFileOptions.Builder(file).build()
-
-//        if (ActivityCompat.checkSelfPermission(
-//                this,
-//                Manifest.permission.RECORD_AUDIO
-//            ) != PackageManager.PERMISSION_GRANTED
-//        ) return
-//
-//        videoCapture.startRecording(outputFileOptions,ContextCompat.getMainExecutor(this),object: VideoCapture.OnVideoSavedCallback{
-//            override fun onVideoSaved(outputFileResults: VideoCapture.OutputFileResults) {
-//                Log.d("TAGsavedvid01", "onVideoSaved: ${outputFileResults.savedUri}")
-//            }
-//
-//            override fun onError(videoCaptureError: Int, message: String, cause: Throwable?) {
-//                Log.d("TAGsavedvid02", "onVideoSaved: ${videoCaptureError}//${message}")
-//            }
-//        })
-    }
-
-
-    private fun startVideoRecording() {
-        // create MediaStoreOutputOptions for our recorder,, resulting the recording..
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Video.Media.DISPLAY_NAME, "${System.currentTimeMillis()}.mp4")
+        // cameraProvider?.unbindAll() //videoCapture
+        try {
+            cameraProvider?.bindToLifecycle(
+                this as LifecycleOwner,
+                cameraSelector,
+                imageAnalysis,
+                //     preview,
+                videoCapture
+            )?.cameraControl?.enableTorch(flashOn)
+        } catch (e: Exception) {
+           toast(applicationContext, "This device is not supported")
+            Log.d("TAGtrycatch", "bindPreview: ${e.message.toString()}")
         }
 
-        val mediaStoreOutput = MediaStoreOutputOptions
-            .Builder(contentResolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
-            .setContentValues(contentValues)
-            .build()
+        //  startVideoRecording(videoCapture)
 
+        val file = File(
+            externalMediaDirs.first(),
+            "mlkit_video_${System.currentTimeMillis()}.mp4"
+        )
+// camera:core lib
+        val outputFileOptions = VideoCapture.OutputFileOptions
+            .Builder(file)
+            .build()
 
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.RECORD_AUDIO
             ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            toast(this, "Give Audio Permission")
-            return
-        }
+        ) return
 
-//        currentRecording = videoCapture.output
+        videoCapture.startRecording(
+            outputFileOptions,
+            ContextCompat.getMainExecutor(this),
+            object : VideoCapture.OnVideoSavedCallback {
+                override fun onVideoSaved(outputFileResults: VideoCapture.OutputFileResults) {
+                    Log.d("TAGsavedvid01", "onVideoSaved: ${outputFileResults.savedUri}")
+                }
+
+                override fun onError(videoCaptureError: Int, message: String, cause: Throwable?) {
+                    Log.d("TAGsavedvid02", "onVideoSaved: ${videoCaptureError}//${message}")
+                }
+            })
+    }
+
+//    private fun startVideoRecording(videoCapture: VideoCapture<Recorder>) {
+//        // create MediaStoreOutputOptions for our recorder,, resulting the recording..
+//        val contentValues = ContentValues().apply {
+//            put(MediaStore.Video.Media.DISPLAY_NAME, "${System.currentTimeMillis()}.mp4")
+//        }
+//
+//        val mediaStoreOutput = MediaStoreOutputOptions
+//            .Builder(contentResolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+//            .setContentValues(contentValues)
+//            .build()
+//
+//
+//        if (ActivityCompat.checkSelfPermission(
+//                this,
+//                Manifest.permission.RECORD_AUDIO
+//            ) != PackageManager.PERMISSION_GRANTED
+//        ) {
+//            toast(this, "Give Audio Permission")
+//            return
+//        }
+//
+//        val currentRecording : Recording = videoCapture.output
 //            .prepareRecording(this, mediaStoreOutput)
 //            .withAudioEnabled()
 //            .start(ContextCompat.getMainExecutor(this), captureListener)
-    }
-
-    private val captureListener = Consumer<VideoRecordEvent> { event ->
-        // listen when video get stopped...
-        val durationInNanos = event.recordingStats.recordedDurationNanos
-        val durationInSeconds = durationInNanos / 1000 / 1000 / 1000.0
-
-        when (event) {
-            is VideoRecordEvent.Start -> {
-                Toast.makeText(applicationContext, "Capture Started", Toast.LENGTH_SHORT).show()
-                // update app internal recording state
-            }
-            is VideoRecordEvent.Finalize -> {
-                if (!event.hasError()) {
-                    Toast.makeText(
-                        applicationContext,
-                        "Video capture succeeded: ${event.outputResults.outputUri}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                } else {
-                    // update app state when the capture failed.
-//                    recording?.close()
-//                    recording = null
-                    Toast.makeText(
-                        applicationContext,
-                        "Video capture ends with error: ${event.error}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-        }
-    }
+//
+//    }
+//
+//    private val captureListener = Consumer<VideoRecordEvent> { event ->
+//        // listen when video get stopped...
+//        val durationInNanos = event.recordingStats.recordedDurationNanos
+//        val durationInSeconds = durationInNanos / 1000 / 1000 / 1000.0
+//
+//        when (event) {
+//            is VideoRecordEvent.Start -> {
+//                Toast.makeText(applicationContext, "Capture Started", Toast.LENGTH_SHORT).show()
+//                // update app internal recording state
+//            }
+//            is VideoRecordEvent.Finalize -> {
+//                if (!event.hasError()) {
+//                    Toast.makeText(
+//                        applicationContext,
+//                        "Video capture succeeded: ${event.outputResults.outputUri}",
+//                        Toast.LENGTH_SHORT
+//                    ).show()
+//                } else {
+//                    // update app state when the capture failed.
+////                    recording?.close()
+////                    recording = null
+//                    Toast.makeText(
+//                        applicationContext,
+//                        "Video capture ends with error: ${event.error}",
+//                        Toast.LENGTH_SHORT
+//                    ).show()
+//                }
+//            }
+//        }
+//    }
 
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onResume() {
