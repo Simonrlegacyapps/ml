@@ -64,8 +64,8 @@ abstract class VisionProcessorBase<T> protected constructor(context: Context) : 
             requestDetectInImage(
                 InputImage.fromBitmap(bit, 0),
                 graphicOverlay,
-                null,
-                false
+                bitmap,
+                true
             )
         }
     }

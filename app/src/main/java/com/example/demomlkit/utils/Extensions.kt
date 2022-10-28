@@ -67,7 +67,7 @@ fun getBitmap(data: ByteBuffer?, metadata: FrameMetadata): Bitmap? {
             imageInBuffer, ImageFormat.NV21, metadata.width, metadata.height, null
         )
         val stream = ByteArrayOutputStream()
-        image.compressToJpeg(Rect(0, 0, metadata.width, metadata.height), 80, stream)
+        image.compressToJpeg(Rect(0, 0, metadata.width, metadata.height), 70, stream)
         val bmp = BitmapFactory.decodeByteArray(stream.toByteArray(), 0, stream.size())
         stream.close()
         return rotateBitmap(

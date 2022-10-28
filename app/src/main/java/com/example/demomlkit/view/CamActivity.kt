@@ -1,12 +1,11 @@
 package com.example.demomlkit.view
 
 //import androidx.camera.core.VideoCapture
+//import androidx.camera.video.*
 import android.Manifest
-import android.R.attr.data
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.pm.PackageManager
-import android.graphics.ImageFormat
 import android.os.*
 import android.provider.MediaStore
 import android.util.Log
@@ -17,15 +16,9 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.core.impl.CaptureConfig
-import androidx.camera.core.impl.VideoCaptureConfig
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.video.Quality
-import androidx.camera.video.QualitySelector
-//import androidx.camera.video.*
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.os.HandlerCompat
-import androidx.core.util.Consumer
 import androidx.lifecycle.LifecycleOwner
 import com.example.demomlkit.databinding.ActivityCamBinding
 import com.example.demomlkit.utils.*
@@ -34,15 +27,7 @@ import com.google.mlkit.common.MlKitException
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
-import com.otaliastudios.cameraview.CameraListener
-import com.otaliastudios.cameraview.PictureResult
-import com.otaliastudios.cameraview.VideoResult
-import com.otaliastudios.cameraview.controls.Flash
-import com.otaliastudios.cameraview.controls.Mode
-import com.otaliastudios.cameraview.controls.VideoCodec
-import com.otaliastudios.cameraview.size.SizeSelector
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.*
 import java.util.*
 import java.util.concurrent.Executor
@@ -50,7 +35,6 @@ import java.util.concurrent.Executors
 
 
 class CamActivity : AppCompatActivity() {
-
     lateinit var binding: ActivityCamBinding
     private lateinit var poseDetector: PoseDetector
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
@@ -62,7 +46,9 @@ class CamActivity : AppCompatActivity() {
     private var imageProcessor: VisionImageProcessor? = null
 //    lateinit var bitmapArray : ArrayList<Bitmap>
     // lateinit var saveVidDialog : AlertDialog
+    lateinit var videoCapture : VideoCapture
 
+    @SuppressLint("RestrictedApi")
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,6 +56,10 @@ class CamActivity : AppCompatActivity() {
         setContentView(binding.root)
         PrefManager.putString("isLoggedIn", "yes")
 
+        binding.stopRecordingButton.setOnClickListener {
+            videoCapture.stopRecording()
+            finish()
+        }
 //        binding.myCameraView.setLifecycleOwner(this)
 
 //        val file = File(externalMediaDirs.first(),
@@ -325,7 +315,7 @@ class CamActivity : AppCompatActivity() {
                 return
             }
 
-        val videoCapture = VideoCapture.Builder()
+        videoCapture = VideoCapture.Builder()
             .setDefaultCaptureConfig(CaptureConfig.defaultEmptyCaptureConfig())
             .setBackgroundExecutor(Dispatchers.IO as Executor)
 //           .setTargetAspectRatio(AspectRatio.Rati)
@@ -363,8 +353,7 @@ class CamActivity : AppCompatActivity() {
                     imageProcessor?.processImageProxy(imageProxy, binding.graphicOverlay)
                 } catch (e: MlKitException) {
                     Log.e("TAG", "Failed to process image. Error: " + e.localizedMessage)
-                    Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT)
-                        .show()
+                    Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -386,11 +375,25 @@ class CamActivity : AppCompatActivity() {
         //  startVideoRecording(videoCapture)
 
         val file = File(
-            externalMediaDirs.first(),
+            filesDir.absolutePath,
             "mlkit_video_${System.currentTimeMillis()}.mp4"
         )
+
+
+//        val contentValues = ContentValues()
+//        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, "NEW_VIDEO")
+//        contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+
+//            val options = VideoCapture.OutputFileOptions
+//            .Builder(
+//            contentResolver,
+//            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+//            contentValues
+//        ).build()
+
+
 // camera:core lib
-        val outputFileOptions = VideoCapture.OutputFileOptions
+        val options = VideoCapture.OutputFileOptions
             .Builder(file)
             .build()
 
@@ -401,7 +404,7 @@ class CamActivity : AppCompatActivity() {
         ) return
 
         videoCapture.startRecording(
-            outputFileOptions,
+            options,
             ContextCompat.getMainExecutor(this),
             object : VideoCapture.OnVideoSavedCallback {
                 override fun onVideoSaved(outputFileResults: VideoCapture.OutputFileResults) {
@@ -484,9 +487,11 @@ class CamActivity : AppCompatActivity() {
 //        imageProcessor?.run { this.stop() }
 //    }
 
+    @SuppressLint("RestrictedApi")
     override fun onStop() {
         super.onStop()
         imageProcessor?.run { this.stop() }
+        videoCapture.stopRecording()
     }
 
     override fun onDestroy() {

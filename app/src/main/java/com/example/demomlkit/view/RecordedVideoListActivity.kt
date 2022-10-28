@@ -27,7 +27,8 @@ class RecordedVideoListActivity : AppCompatActivity(), RecordedVideoAdapter.OnVi
         binding = ActivityRecordedVideoListBinding.inflate(layoutInflater)
         setContentView(binding.root)
         recordedVideoFile = ArrayList()
-        val path = externalMediaDirs.first().toString()
+
+        val path = filesDir.absolutePath.toString()
         val f = File(path)
         val file: Array<File> = f.listFiles()
         Log.d("Files", "Size: " + file.size)
@@ -54,14 +55,7 @@ class RecordedVideoListActivity : AppCompatActivity(), RecordedVideoAdapter.OnVi
 
     override fun onClick(position: Int) {
         startActivity(Intent(this, VideoActivity::class.java)
-            .putExtra("file_path", recordedVideoFile[position].path))
-       // val fileUri = Uri.fromFile(File(recordedVideoFile[position].path))
-//        val fileUri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".provider", recordedVideoFile[position])
-//        val intent = Intent()
-//        intent.action = Intent.ACTION_VIEW
-//        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-//        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-//        intent.setDataAndType(fileUri, "video/mp4") //URLConnection.guessContentTypeFromName(fileUri.toString()))
-//        startActivity(intent)
+            .putExtra("file_uri", Uri.fromFile(recordedVideoFile[position]).toString())
+            .putExtra("file_path", recordedVideoFile[position].absolutePath.toString()))
     }
 }

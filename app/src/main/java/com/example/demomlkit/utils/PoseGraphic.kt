@@ -33,7 +33,7 @@ internal constructor(
         classificationTextPaint.color = Color.RED
         classificationTextPaint.textSize = POSE_CLASSIFICATION_TEXT_SIZE
         classificationTextPaint.strokeWidth = STROKE_WIDTH
-        classificationTextPaint.setShadowLayer(5.0f, 0f, 0f, Color.BLACK)
+        classificationTextPaint.setShadowLayer(1.0f, 0f, 0f, Color.BLACK)
 
         whitePaint = Paint()
         whitePaint.strokeWidth = STROKE_WIDTH
@@ -58,9 +58,9 @@ internal constructor(
 
             if (canvas != null) {
                 // Drawing pose classification text.
-                val classificationX = POSE_CLASSIFICATION_TEXT_SIZE * 0.5f
+                val classificationX = POSE_CLASSIFICATION_TEXT_SIZE * 0.4f
                 for (i in poseClassification.indices) {
-                    val classificationY = canvas.height - (POSE_CLASSIFICATION_TEXT_SIZE * 1.5f * (poseClassification.size - i).toFloat())
+                    val classificationY = canvas.height - (POSE_CLASSIFICATION_TEXT_SIZE * 2.6f * (poseClassification.size - i).toFloat())
                     poseClassification[i]?.let {
                         canvas.drawText(
                             it,

@@ -16,7 +16,7 @@
         android:id="@+id/myCameraView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:cameraAudio="off"
+        app:cameraAudio="on"
         app:cameraEngine="camera2" />
 
     <com.example.demomlkit.utils.GraphicOverlay
@@ -31,8 +31,8 @@
         android:layout_gravity="end"
         android:layout_marginTop="@dimen/_16sdp"
         android:layout_marginEnd="@dimen/_10sdp"
-        android:visibility="gone"
         app:cardCornerRadius="@dimen/_16sdp"
+        android:visibility="gone"
         app:cardElevation="@dimen/_6sdp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -121,6 +121,21 @@
         android:textStyle="bold"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent" />
+
+    <Button
+        android:id="@+id/stopRecordingButton"
+        style="@style/Widget.Material3.Button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/_2sdp"
+        android:layout_marginHorizontal="@dimen/_60sdp"
+        android:backgroundTint="@color/red"
+        android:gravity="center"
+        android:layout_gravity="bottom"
+        android:includeFontPadding="false"
+        android:text="Stop Recording"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_11sdp" />
 
 </FrameLayout>
 
