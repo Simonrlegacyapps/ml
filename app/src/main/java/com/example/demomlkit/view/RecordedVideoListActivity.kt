@@ -31,10 +31,8 @@ class RecordedVideoListActivity : AppCompatActivity(), RecordedVideoAdapter.OnVi
         val path = filesDir.absolutePath.toString()
         val f = File(path)
         val file: Array<File> = f.listFiles()
-        Log.d("Files", "Size: " + file.size)
         for (i in file.indices) {
             //here is our recorded videos list
-            Log.d("Files", "FileName:" + file[i].name)
             recordedVideoFile.add(file[i])
         }
 

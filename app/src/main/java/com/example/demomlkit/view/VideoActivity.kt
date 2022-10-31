@@ -3,7 +3,6 @@ package com.example.demomlkit.view
 import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.media.MediaMetadataRetriever
-import android.media.MediaMetadataRetriever.OPTION_CLOSEST
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -13,17 +12,19 @@ import android.view.TextureView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import com.example.demomlkit.MoviePlayer
-import com.example.demomlkit.SpeedControlCallback
-import com.example.demomlkit.URIPathHelper
+import com.example.demomlkit.recorded_video_player.MoviePlayer
+import com.example.demomlkit.recorded_video_player.SpeedControlCallback
 import com.example.demomlkit.databinding.ActivityVideoBinding
+import com.example.demomlkit.utils.Draw
 import com.example.demomlkit.utils.PoseDetectorProcessor
 import com.example.demomlkit.utils.VisionImageProcessor
 import com.example.demomlkit.utils.toast
 import com.google.mlkit.common.MlKitException
+import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
+import kotlinx.android.synthetic.main.activity_cam.*
 import java.io.File
 import java.io.IOException
 
@@ -46,17 +47,12 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener,
 
         binding.mTextureView.surfaceTextureListener = this
 
-        val options = PoseDetectorOptions.Builder()
-            .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
-            .build()
-        poseDetector = PoseDetection.getClient(options)
-
-        detectPose()
+        setUpPoseDetect()
 
         val mUri = Uri.parse(intent.extras?.getString("file_uri"))
 
         val mediaMetadataRetriever = MediaMetadataRetriever()
-        mediaMetadataRetriever.setDataSource(applicationContext, mUri)
+        mediaMetadataRetriever.setDataSource(this, mUri)
         binding.imgView.setImageBitmap(mediaMetadataRetriever.getFrameAtIndex(0))
     }
 
@@ -66,7 +62,7 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener,
         val path = intent.extras?.getString("file_path")
 
         val callback = SpeedControlCallback()
-        //  callback.setFixedPlaybackRate(60)
+        //callback.setFixedPlaybackRate(30)
 
         val st: SurfaceTexture? = binding.mTextureView.surfaceTexture
         val surface = Surface(st)
@@ -75,7 +71,8 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener,
         if (uri != null) {
             try {
                 player = MoviePlayer(File(path), surface, callback)
-            } catch (ioe: IOException) {
+            } catch (io: IOException) {
+                toast(this, io.message.toString())
                 surface.release()
                 return
             }
@@ -113,7 +110,12 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener,
         binding.mTextureView.setTransform(txform)
     }
 
-    private fun detectPose() {
+    private fun setUpPoseDetect() {
+        val options = PoseDetectorOptions.Builder()
+            .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
+            .build()
+        poseDetector = PoseDetection.getClient(options)
+
         if (imageProcessor != null) imageProcessor!!.stop()
 
         imageProcessor =
@@ -135,15 +137,14 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener,
                 ).show()
                 return
             }
-
     }
 
     @RequiresApi(Build.VERSION_CODES.P)
     override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
-        play()
         mSurfaceTextureReady = true
         val bm = binding.mTextureView.bitmap
         binding.imgView.setImageBitmap(bm)
+        play()
     }
 
     override fun onSurfaceTextureSizeChanged(p0: SurfaceTexture, p1: Int, p2: Int) {
@@ -172,7 +173,22 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener,
                 Log.e("TAG", "Failed to process image. Error: " + e.localizedMessage)
                 Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT).show()
             }
-        } else Log.d("LOG:", "null")
+
+
+//            val inputImage = InputImage.fromBitmap(bm, 0)
+//            poseDetector.process(inputImage)
+//                .addOnSuccessListener { pose ->
+//                    if (binding.parentLayout.childCount > 3) binding.parentLayout.removeViewAt(3)
+//                 //  binding.imgView.setImageBitmap(bm)
+//                    if (pose.allPoseLandmarks.isNotEmpty()) {
+//                        binding.parentLayout.addView(Draw(applicationContext, pose))
+//                    }
+//                    Log.d("LOG:", "Success")
+//                }
+//                .addOnFailureListener {
+//                    Log.d("LOG:imagfailed", it.message.toString())
+//                }
+       }  else Log.d("LOG:", "null")
     }
 
     override fun playbackStopped() {
@@ -190,18 +206,10 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener,
             stopPlayback()
             mPlayTask!!.waitForStop()
         }
+        imageProcessor?.run { this.stop() }
     }
 
     private fun stopPlayback() {
         mPlayTask?.requestStop()
     }
-
 }
-
-
-//       val rr =  FileProvider.getUriForFile(
-//            Objects.requireNonNull(applicationContext),
-//            BuildConfig.APPLICATION_ID + ".provider", File(intent.extras?.getString("file_path")))
-
-//   binding.videoView.setVideoURI(rr)
-//binding.videoView.setVideoURI(FileProvider.getUriForFile(this, packageName, File(intent.extras?.getString("file_path"))))

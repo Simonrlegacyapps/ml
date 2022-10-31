@@ -23,8 +23,6 @@ class HomeActivity : AppCompatActivity(), CategoriesAdapter.OnCatClickInterface 
     lateinit var binding : ActivityHomeBinding
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
     private var cameraProvider: ProcessCameraProvider? = null
-//    private lateinit var currentRecording : Recording
-//    private lateinit var videoCapture: VideoCapture<Recorder>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,12 +45,6 @@ class HomeActivity : AppCompatActivity(), CategoriesAdapter.OnCatClickInterface 
     private fun startCamera() {
         binding.myCameraView.setLifecycleOwner(this)
         binding.myCameraView
-//        cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-//        cameraProvider = cameraProviderFuture.get()
-//
-//        cameraProviderFuture.addListener({
-//            bindPreview()
-//        }, ContextCompat.getMainExecutor(this))
     }
 
     private fun bindPreview() {

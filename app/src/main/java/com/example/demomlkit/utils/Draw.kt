@@ -9,9 +9,8 @@ import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseLandmark
 import java.util.*
 
-
-class Draw(ctx: Context, var pose: Pose, angleText: TextView) : View(ctx) {
-    private var mAngleText: TextView = angleText
+class Draw(ctx: Context, var pose: Pose) : View(ctx) {
+    //private var mAngleText: TextView = angleText
     private var paint: Paint = Paint()
 
     init {
@@ -144,7 +143,7 @@ class Draw(ctx: Context, var pose: Pose, angleText: TextView) : View(ctx) {
                 Right Leg : $rightLegAngleText'
                 """.trimIndent()
 
-            mAngleText.text = angleText
+           // mAngleText.text = angleText
 
             if (canvas != null)
                 displayAllPoses(

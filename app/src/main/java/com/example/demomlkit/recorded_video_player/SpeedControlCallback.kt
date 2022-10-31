@@ -1,6 +1,7 @@
-package com.example.demomlkit
+package com.example.demomlkit.recorded_video_player
 
 import android.util.Log
+import com.example.demomlkit.recorded_video_player.MoviePlayer
 
 
 class SpeedControlCallback : MoviePlayer.FrameCallback {
@@ -28,7 +29,7 @@ class SpeedControlCallback : MoviePlayer.FrameCallback {
         // Android 4.4 this may not be happening.
         if (mPrevMonoUsec == 0L) {
             // Latch current values, then return immediately.
-            mPrevMonoUsec = System.nanoTime() / 1000
+            mPrevMonoUsec = System.nanoTime() / 4000
             mPrevPresentUsec = presentationTimeUsec
         } else {
             // Compute the desired time delta between the previous frame and this frame.
@@ -38,7 +39,7 @@ class SpeedControlCallback : MoviePlayer.FrameCallback {
                 // on-screen, so we just throw a reasonable value in.  We could probably
                 // do better by using a previous frame duration or some sort of average;
                 // for now we just use 30fps.
-                mPrevPresentUsec = presentationTimeUsec - ONE_MILLION / 30
+                mPrevPresentUsec = presentationTimeUsec - ONE_MILLION / 45
                 mLoopReset = false
             }
             frameDelta = if (mFixedFrameDurationUsec != 0L) {
@@ -53,7 +54,7 @@ class SpeedControlCallback : MoviePlayer.FrameCallback {
             } else if (frameDelta == 0L) {
                 // This suggests a possible bug in movie generation.
                 Log.i(TAG, "Warning: current frame and previous frame had same timestamp")
-            } else if (frameDelta > 10 * ONE_MILLION) {
+            } else if (frameDelta > 40 * ONE_MILLION) {
                 // Inter-frame times could be arbitrarily long.  For this player, we want
                 // to alert the developer that their movie might have issues (maybe they
                 // accidentally output timestamps in nsec rather than usec).
@@ -64,13 +65,13 @@ class SpeedControlCallback : MoviePlayer.FrameCallback {
                 frameDelta = 5 * ONE_MILLION
             }
             val desiredUsec = mPrevMonoUsec + frameDelta // when we want to wake up
-            var nowUsec = System.nanoTime() / 1000
-            while (nowUsec < desiredUsec - 100 /*&& mState == RUNNING*/) {
+            var nowUsec = System.nanoTime() / 4000
+            while (nowUsec < desiredUsec - 500 /*&& mState == RUNNING*/) {
                 // Sleep until it's time to wake up.  To be responsive to "stop" commands
                 // we're going to wake up every half a second even if the sleep is supposed
                 // to be longer (which should be rare).  The alternative would be
                 // to interrupt the thread, but that requires more work.
-                //
+
                 // The precision of the sleep call varies widely from one device to another;
                 // we may wake early or late.  Different devices will have a minimum possible
                 // sleep time. If we're within 100us of the target time, we'll probably
@@ -82,7 +83,7 @@ class SpeedControlCallback : MoviePlayer.FrameCallback {
                 try {
                     if (CHECK_SLEEP_TIME) {
                         val startNsec = System.nanoTime()
-                        Thread.sleep(sleepTimeUsec / 1000, (sleepTimeUsec % 1000).toInt() * 1000)
+                        //Thread.sleep(sleepTimeUsec / 1000, (sleepTimeUsec % 1000).toInt() * 1000)
                         val actualSleepNsec = System.nanoTime() - startNsec
                         Log.d(
                             TAG, "sleep=" + sleepTimeUsec + " actual=" + actualSleepNsec / 1000 +
@@ -90,11 +91,11 @@ class SpeedControlCallback : MoviePlayer.FrameCallback {
                                     " (usec)"
                         )
                     } else {
-                        Thread.sleep(sleepTimeUsec / 1000, (sleepTimeUsec % 1000).toInt() * 1000)
+                        //Thread.sleep(sleepTimeUsec / 1000, (sleepTimeUsec % 1000).toInt() * 1000)
                     }
                 } catch (ie: InterruptedException) {
                 }
-                nowUsec = System.nanoTime() / 1000
+                nowUsec = System.nanoTime() / 4000
             }
 
             // Advance times using calculated time values, not the post-sleep monotonic

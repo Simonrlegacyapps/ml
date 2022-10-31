@@ -1,9 +1,10 @@
-package com.example.demomlkit
+package com.example.demomlkit.recorded_video_player
 
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.os.Handler
+import android.os.Looper
 import android.os.Message
 import android.util.Log
 import android.view.Surface
@@ -403,7 +404,7 @@ class MoviePlayer(sourceFile: File, outputSurface: Surface, frameCallback: Frame
             }
         }
 
-        private class LocalHandler : Handler() {
+        private class LocalHandler : Handler(Looper.getMainLooper()) {
             override fun handleMessage(msg: Message) {
                 val what: Int = msg.what
                 when (what) {
