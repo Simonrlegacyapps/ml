@@ -1,11 +1,15 @@
 package com.example.demomlkit.view
 
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Intent
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
+import android.view.View
+import androidx.annotation.RequiresApi
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -16,25 +20,67 @@ import androidx.lifecycle.LifecycleOwner
 import com.example.demomlkit.databinding.ActivityHomeBinding
 import com.example.demomlkit.view.adapter.CategoriesAdapter
 import com.google.common.util.concurrent.ListenableFuture
+import com.otaliastudios.cameraview.controls.Facing
+import com.otaliastudios.cameraview.controls.Flash
 import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.properties.Delegates
 
 class HomeActivity : AppCompatActivity(), CategoriesAdapter.OnCatClickInterface {
-    lateinit var binding : ActivityHomeBinding
+    lateinit var binding: ActivityHomeBinding
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
     private var cameraProvider: ProcessCameraProvider? = null
+    private lateinit var isLensBack : String
+    private lateinit var isFlashOn : String
 
+    @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setCategories()
-        binding.startRecordingButton.setOnClickListener {
+        initListeners()
+    }
 
+    @SuppressLint("RestrictedApi")
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun initListeners() {
+        binding.startRecordingButton.setOnClickListener {
             startActivity(Intent(this, CamActivity::class.java))
         }
         binding.goToListButton.setOnClickListener {
-            startActivity(Intent(this, RecordedVideoListActivity::class.java))
+            startActivity(
+                Intent(this, RecordedVideoListActivity::class.java).putExtra("isFlash", isFlashOn)
+                    .putExtra("isLensBack", isLensBack)
+            )
+        }
+        binding.rotateCameraIconFront.setOnClickListener {
+            binding.rotateCameraIconBack.visibility = View.VISIBLE
+            binding.rotateCameraIconFront.visibility = View.GONE
+
+            binding.myCameraView.facing = Facing.FRONT
+            isLensBack = "no"
+        }
+        binding.rotateCameraIconBack.setOnClickListener {
+            binding.rotateCameraIconBack.visibility = View.GONE
+            binding.rotateCameraIconFront.visibility = View.VISIBLE
+            binding.flashIconOn.visibility = View.GONE
+            binding.flashIconOff.visibility = View.VISIBLE
+
+            binding.myCameraView.facing = Facing.BACK
+            isLensBack = "yes"
+        }
+        binding.flashIconOn.setOnClickListener {
+            binding.flashIconOn.visibility = View.GONE
+            binding.flashIconOff.visibility = View.VISIBLE
+            isFlashOn = "no"
+            binding.myCameraView.flash = Flash.OFF
+        }
+        binding.flashIconOff.setOnClickListener {
+            binding.flashIconOn.visibility = View.VISIBLE
+            binding.flashIconOff.visibility = View.GONE
+            isFlashOn = "yes"
+            binding.myCameraView.flash = Flash.OFF
         }
     }
 
@@ -45,7 +91,9 @@ class HomeActivity : AppCompatActivity(), CategoriesAdapter.OnCatClickInterface 
 
     private fun startCamera() {
         binding.myCameraView.setLifecycleOwner(this)
-        binding.myCameraView
+        binding.myCameraView.facing = Facing.BACK
+        isLensBack = "yes"
+        isFlashOn = "no"
     }
 
     private fun bindPreview() {
@@ -53,9 +101,8 @@ class HomeActivity : AppCompatActivity(), CategoriesAdapter.OnCatClickInterface 
 //            it.setSurfaceProvider(binding.myCameraView.surfaceProvider)
 //        }
 
-        val cameraSelector = CameraSelector.Builder()
-            .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-            .build()
+        val cameraSelector =
+            CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
 
 //        val quality = Quality.HD
 //        val qualitySelector = QualitySelector.from(quality)
@@ -68,7 +115,7 @@ class HomeActivity : AppCompatActivity(), CategoriesAdapter.OnCatClickInterface 
         cameraProvider?.unbindAll()
         cameraProvider?.bindToLifecycle(this as LifecycleOwner, cameraSelector)
 
-    //    startVideoRecording()
+        //    startVideoRecording()
     }
 
 //    private fun startVideoRecording() {

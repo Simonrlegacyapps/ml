@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import java.io.*
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
+import kotlin.properties.Delegates
 
 class CamActivity : AppCompatActivity() {
     lateinit var binding: ActivityCamBinding
@@ -36,7 +37,8 @@ class CamActivity : AppCompatActivity() {
     private lateinit var cameraSelector: CameraSelector
     private lateinit var imageAnalysis: ImageAnalysis
     private var cameraProvider: ProcessCameraProvider? = null
-    var flashOn: Boolean = false
+    private lateinit var flashOn : String
+    private lateinit var isLensBack : String
     private var imageProcessor: VisionImageProcessor? = null
     lateinit var videoCapture : VideoCapture
 
@@ -50,6 +52,8 @@ class CamActivity : AppCompatActivity() {
 
         cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProvider = cameraProviderFuture.get()
+        flashOn = intent.extras?.getString("isFlash")!!
+        isLensBack = intent.extras?.getString("isLensBack")!!
     }
 
     @SuppressLint("RestrictedApi")
@@ -60,66 +64,66 @@ class CamActivity : AppCompatActivity() {
             finish()
         }
 
-        binding.rotateCameraIconFront.setOnClickListener {
-            binding.rotateCameraIconBack.visibility = View.VISIBLE
-            binding.rotateCameraIconFront.visibility = View.GONE
+//        binding.rotateCameraIconFront.setOnClickListener {
+//            binding.rotateCameraIconBack.visibility = View.VISIBLE
+//            binding.rotateCameraIconFront.visibility = View.GONE
 
-            cameraSelector = CameraSelector.Builder()
-                .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-                .build()
-
-          //  cameraProvider?.unbindAll()
-            cameraProvider?.bindToLifecycle(
-                this,
-                cameraSelector,
-                videoCapture
-            )
-
-           // startCamera(CameraSelector.LENS_FACING_FRONT)
-        }
-        binding.rotateCameraIconBack.setOnClickListener {
-            binding.rotateCameraIconBack.visibility = View.GONE
-            binding.rotateCameraIconFront.visibility = View.VISIBLE
-            binding.flashIconOn.visibility = View.GONE
-            binding.flashIconOff.visibility = View.VISIBLE
-            flashOn = false
-
-            cameraSelector = CameraSelector.Builder()
-                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-                .build()
-
-           // cameraProvider?.unbindAll()
-            cameraProvider?.bindToLifecycle(
-                this,
-                cameraSelector,
-                videoCapture
-            )
-
-            //startCamera(CameraSelector.LENS_FACING_BACK)
-        }
-
-        binding.flashIconOn.setOnClickListener {
-            binding.flashIconOn.visibility = View.GONE
-            binding.flashIconOff.visibility = View.VISIBLE
-            flashOn = false
-            cameraProvider?.bindToLifecycle(
-                this as LifecycleOwner,
-                cameraSelector,
-                preview,
-                imageAnalysis
-            )?.cameraControl?.enableTorch(flashOn)
-        }
-        binding.flashIconOff.setOnClickListener {
-            binding.flashIconOn.visibility = View.VISIBLE
-            binding.flashIconOff.visibility = View.GONE
-            flashOn = true
-            cameraProvider?.bindToLifecycle(
-                this as LifecycleOwner,
-                cameraSelector,
-                preview,
-                imageAnalysis
-            )?.cameraControl?.enableTorch(flashOn)
-        }
+//            cameraSelector = CameraSelector.Builder()
+//                .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+//                .build()
+//
+//          //  cameraProvider?.unbindAll()
+//            cameraProvider?.bindToLifecycle(
+//                this,
+//                cameraSelector,
+//                videoCapture
+//            )
+//
+//           // startCamera(CameraSelector.LENS_FACING_FRONT)
+//        }
+//        binding.rotateCameraIconBack.setOnClickListener {
+//            binding.rotateCameraIconBack.visibility = View.GONE
+//            binding.rotateCameraIconFront.visibility = View.VISIBLE
+//            binding.flashIconOn.visibility = View.GONE
+//            binding.flashIconOff.visibility = View.VISIBLE
+//            flashOn = false
+//
+//            cameraSelector = CameraSelector.Builder()
+//                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+//                .build()
+//
+//           // cameraProvider?.unbindAll()
+//            cameraProvider?.bindToLifecycle(
+//                this,
+//                cameraSelector,
+//                videoCapture
+//            )
+//
+//            //startCamera(CameraSelector.LENS_FACING_BACK)
+//        }
+//
+//        binding.flashIconOn.setOnClickListener {
+//            binding.flashIconOn.visibility = View.GONE
+//            binding.flashIconOff.visibility = View.VISIBLE
+//            flashOn = false
+//            cameraProvider?.bindToLifecycle(
+//                this as LifecycleOwner,
+//                cameraSelector,
+//                preview,
+//                imageAnalysis
+//            )?.cameraControl?.enableTorch(flashOn)
+//        }
+//        binding.flashIconOff.setOnClickListener {
+//            binding.flashIconOn.visibility = View.VISIBLE
+//            binding.flashIconOff.visibility = View.GONE
+//            flashOn = true
+//            cameraProvider?.bindToLifecycle(
+//                this as LifecycleOwner,
+//                cameraSelector,
+//                preview,
+//                imageAnalysis
+//            )?.cameraControl?.enableTorch(flashOn)
+//        }
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
@@ -210,9 +214,8 @@ class CamActivity : AppCompatActivity() {
                 this as LifecycleOwner,
                 cameraSelector,
                 imageAnalysis,
-                //     preview,
                 videoCapture
-            )?.cameraControl?.enableTorch(flashOn)
+            )?.cameraControl?.enableTorch(flashOn == "yes")
         } catch (e: Exception) {
             toast(applicationContext, "This device is not supported")
             Log.d("TAGtrycatch", "bindPreview: ${e.message.toString()}")
@@ -253,7 +256,8 @@ class CamActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onResume() {
         super.onResume()
-        startCamera(CameraSelector.LENS_FACING_BACK)
+        if (isLensBack == "yes") startCamera(CameraSelector.LENS_FACING_BACK)
+        else startCamera(CameraSelector.LENS_FACING_FRONT)
         binding.stopRecordingButton.visibility = View.VISIBLE
     }
 

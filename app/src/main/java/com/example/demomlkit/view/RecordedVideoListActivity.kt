@@ -35,7 +35,6 @@ class RecordedVideoListActivity : AppCompatActivity(), RecordedVideoAdapter.OnVi
             //here is our recorded videos list
             recordedVideoFile.add(file[i])
         }
-
         setupRecyclerview()
     }
 
