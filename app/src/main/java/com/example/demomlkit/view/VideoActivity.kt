@@ -112,7 +112,7 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener,
 
     private fun setUpPoseDetect() {
         val options = PoseDetectorOptions.Builder()
-            .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
+            .setDetectorMode(PoseDetectorOptions.CPU_GPU)  //STREAM_MODE
             .build()
         poseDetector = PoseDetection.getClient(options)
 

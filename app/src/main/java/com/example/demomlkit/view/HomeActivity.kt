@@ -30,6 +30,7 @@ class HomeActivity : AppCompatActivity(), CategoriesAdapter.OnCatClickInterface 
         setContentView(binding.root)
         setCategories()
         binding.startRecordingButton.setOnClickListener {
+
             startActivity(Intent(this, CamActivity::class.java))
         }
         binding.goToListButton.setOnClickListener {

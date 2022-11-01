@@ -47,6 +47,9 @@ class CamActivity : AppCompatActivity() {
         setContentView(binding.root)
         PrefManager.putString("isLoggedIn", "yes")
         initListeners()
+
+        cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProvider = cameraProviderFuture.get()
     }
 
     @SuppressLint("RestrictedApi")
@@ -60,7 +63,19 @@ class CamActivity : AppCompatActivity() {
         binding.rotateCameraIconFront.setOnClickListener {
             binding.rotateCameraIconBack.visibility = View.VISIBLE
             binding.rotateCameraIconFront.visibility = View.GONE
-            startCamera(CameraSelector.LENS_FACING_FRONT)
+
+            cameraSelector = CameraSelector.Builder()
+                .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+                .build()
+
+          //  cameraProvider?.unbindAll()
+            cameraProvider?.bindToLifecycle(
+                this,
+                cameraSelector,
+                videoCapture
+            )
+
+           // startCamera(CameraSelector.LENS_FACING_FRONT)
         }
         binding.rotateCameraIconBack.setOnClickListener {
             binding.rotateCameraIconBack.visibility = View.GONE
@@ -68,30 +83,42 @@ class CamActivity : AppCompatActivity() {
             binding.flashIconOn.visibility = View.GONE
             binding.flashIconOff.visibility = View.VISIBLE
             flashOn = false
-            startCamera(CameraSelector.LENS_FACING_BACK)
+
+            cameraSelector = CameraSelector.Builder()
+                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                .build()
+
+           // cameraProvider?.unbindAll()
+            cameraProvider?.bindToLifecycle(
+                this,
+                cameraSelector,
+                videoCapture
+            )
+
+            //startCamera(CameraSelector.LENS_FACING_BACK)
         }
 
         binding.flashIconOn.setOnClickListener {
             binding.flashIconOn.visibility = View.GONE
             binding.flashIconOff.visibility = View.VISIBLE
             flashOn = false
-            cameraProviderFuture.get().bindToLifecycle(
+            cameraProvider?.bindToLifecycle(
                 this as LifecycleOwner,
                 cameraSelector,
                 preview,
                 imageAnalysis
-            ).cameraControl.enableTorch(flashOn)
+            )?.cameraControl?.enableTorch(flashOn)
         }
         binding.flashIconOff.setOnClickListener {
             binding.flashIconOn.visibility = View.VISIBLE
             binding.flashIconOff.visibility = View.GONE
             flashOn = true
-            cameraProviderFuture.get().bindToLifecycle(
+            cameraProvider?.bindToLifecycle(
                 this as LifecycleOwner,
                 cameraSelector,
                 preview,
                 imageAnalysis
-            ).cameraControl.enableTorch(flashOn)
+            )?.cameraControl?.enableTorch(flashOn)
         }
     }
 
@@ -101,9 +128,6 @@ class CamActivity : AppCompatActivity() {
             .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
             .build()
         poseDetector = PoseDetection.getClient(options)
-
-        cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-        cameraProvider = cameraProviderFuture.get()
 
         cameraSelector = CameraSelector.Builder()
             .requireLensFacing(lensFacing)
@@ -230,6 +254,7 @@ class CamActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         startCamera(CameraSelector.LENS_FACING_BACK)
+        binding.stopRecordingButton.visibility = View.VISIBLE
     }
 
     @SuppressLint("RestrictedApi")
