@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -36,18 +37,29 @@ class RecordedVideoListActivity : AppCompatActivity(), RecordedVideoAdapter.OnVi
             recordedVideoFile.add(file[i])
         }
         setupRecyclerview()
+
+        binding.ivBackBtn.setOnClickListener {
+            finish()
+        }
     }
 
     private fun setupRecyclerview() {
-        val recordedVideoAdapter = RecordedVideoAdapter(recordedVideoFile, this)
-        binding.rvVideos.adapter = recordedVideoAdapter
-        binding.rvVideos.addItemDecoration(
-            DividerItemDecoration(
-                this,
-                LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false).orientation
+        if (recordedVideoFile.isNullOrEmpty()) {
+            binding.tvNoVidText.visibility = View.VISIBLE
+            binding.rvVideos.visibility = View.GONE
+        } else {
+            binding.tvNoVidText.visibility = View.GONE
+            binding.rvVideos.visibility = View.VISIBLE
+            val recordedVideoAdapter = RecordedVideoAdapter(recordedVideoFile, this)
+            binding.rvVideos.adapter = recordedVideoAdapter
+            binding.rvVideos.addItemDecoration(
+                DividerItemDecoration(
+                    this,
+                    LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false).orientation
+                )
             )
-        )
-        recordedVideoAdapter.notifyDataSetChanged()
+            recordedVideoAdapter.notifyDataSetChanged()
+        }
     }
 
     override fun onClick(position: Int) {

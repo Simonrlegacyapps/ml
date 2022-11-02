@@ -2,7 +2,7 @@ package com.example.demomlkit.recorded_video_player
 
 import android.util.Log
 import com.example.demomlkit.recorded_video_player.MoviePlayer
-
+import com.example.demomlkit.utils.toast
 
 class SpeedControlCallback : MoviePlayer.FrameCallback {
     private var mPrevPresentUsec: Long = 0
@@ -29,7 +29,7 @@ class SpeedControlCallback : MoviePlayer.FrameCallback {
         // Android 4.4 this may not be happening.
         if (mPrevMonoUsec == 0L) {
             // Latch current values, then return immediately.
-            mPrevMonoUsec = System.nanoTime() / 4000
+            mPrevMonoUsec = System.nanoTime() / 3000
             mPrevPresentUsec = presentationTimeUsec
         } else {
             // Compute the desired time delta between the previous frame and this frame.
@@ -39,7 +39,7 @@ class SpeedControlCallback : MoviePlayer.FrameCallback {
                 // on-screen, so we just throw a reasonable value in.  We could probably
                 // do better by using a previous frame duration or some sort of average;
                 // for now we just use 30fps.
-                mPrevPresentUsec = presentationTimeUsec - ONE_MILLION / 45
+                mPrevPresentUsec = presentationTimeUsec - ONE_MILLION / 30
                 mLoopReset = false
             }
             frameDelta = if (mFixedFrameDurationUsec != 0L) {
@@ -54,7 +54,7 @@ class SpeedControlCallback : MoviePlayer.FrameCallback {
             } else if (frameDelta == 0L) {
                 // This suggests a possible bug in movie generation.
                 Log.i(TAG, "Warning: current frame and previous frame had same timestamp")
-            } else if (frameDelta > 40 * ONE_MILLION) {
+            } else if (frameDelta > 30 * ONE_MILLION) {
                 // Inter-frame times could be arbitrarily long.  For this player, we want
                 // to alert the developer that their movie might have issues (maybe they
                 // accidentally output timestamps in nsec rather than usec).
@@ -65,7 +65,7 @@ class SpeedControlCallback : MoviePlayer.FrameCallback {
                 frameDelta = 5 * ONE_MILLION
             }
             val desiredUsec = mPrevMonoUsec + frameDelta // when we want to wake up
-            var nowUsec = System.nanoTime() / 4000
+            var nowUsec = System.nanoTime() / 3000
             while (nowUsec < desiredUsec - 500 /*&& mState == RUNNING*/) {
                 // Sleep until it's time to wake up.  To be responsive to "stop" commands
                 // we're going to wake up every half a second even if the sleep is supposed
@@ -77,9 +77,8 @@ class SpeedControlCallback : MoviePlayer.FrameCallback {
                 // sleep time. If we're within 100us of the target time, we'll probably
                 // overshoot if we try to sleep, so just go ahead and continue on.
                 var sleepTimeUsec = desiredUsec - nowUsec
-                if (sleepTimeUsec > 500000) {
-                    sleepTimeUsec = 500000
-                }
+                if (sleepTimeUsec > 500000) sleepTimeUsec = 500000
+
                 try {
                     if (CHECK_SLEEP_TIME) {
                         val startNsec = System.nanoTime()
@@ -95,7 +94,7 @@ class SpeedControlCallback : MoviePlayer.FrameCallback {
                     }
                 } catch (ie: InterruptedException) {
                 }
-                nowUsec = System.nanoTime() / 4000
+                nowUsec = System.nanoTime() / 3000
             }
 
             // Advance times using calculated time values, not the post-sleep monotonic

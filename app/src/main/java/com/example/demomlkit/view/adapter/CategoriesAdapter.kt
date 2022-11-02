@@ -17,7 +17,7 @@ class CategoriesAdapter(private val catList : ArrayList<String>, val onCatClickI
         holder.bind(catList[position], pos)
         holder.itemView.setOnClickListener {
             pos = position
-            onCatClickInterface.onClick(position)
+            onCatClickInterface.onClick(catList[position])
             notifyDataSetChanged()
         }
     }
@@ -47,6 +47,6 @@ class CategoriesAdapter(private val catList : ArrayList<String>, val onCatClickI
     }
 
     interface OnCatClickInterface{
-        fun onClick(position: Int)
+        fun onClick(cat: String)
     }
 }

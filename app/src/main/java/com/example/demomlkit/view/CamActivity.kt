@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
+import androidx.camera.core.AspectRatio.RATIO_16_9
 import androidx.camera.core.impl.CaptureConfig
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
@@ -27,7 +28,6 @@ import kotlinx.coroutines.Dispatchers
 import java.io.*
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
-import kotlin.properties.Delegates
 
 class CamActivity : AppCompatActivity() {
     lateinit var binding: ActivityCamBinding
@@ -39,6 +39,7 @@ class CamActivity : AppCompatActivity() {
     private var cameraProvider: ProcessCameraProvider? = null
     private lateinit var flashOn : String
     private lateinit var isLensBack : String
+    private lateinit var category : String
     private var imageProcessor: VisionImageProcessor? = null
     lateinit var videoCapture : VideoCapture
 
@@ -47,13 +48,13 @@ class CamActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityCamBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        PrefManager.putString("isLoggedIn", "yes")
         initListeners()
 
         cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProvider = cameraProviderFuture.get()
         flashOn = intent.extras?.getString("isFlash")!!
         isLensBack = intent.extras?.getString("isLensBack")!!
+        category = intent.extras?.getString("category")!!
     }
 
     @SuppressLint("RestrictedApi")
@@ -63,6 +64,170 @@ class CamActivity : AppCompatActivity() {
             videoCapture.stopRecording()
             finish()
         }
+
+        binding.ivBackBtn.setOnClickListener {
+            videoCapture.stopRecording()
+            finish()
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun startCamera(lensFacing: Int) {
+        val options = PoseDetectorOptions.Builder()
+            .setDetectorMode(PoseDetectorOptions.STREAM_MODE)  // CPU_GPU //STREAM_MODE
+            .build()
+        poseDetector = PoseDetection.getClient(options)
+
+        cameraSelector = CameraSelector.Builder()
+            .requireLensFacing(lensFacing)
+            .build()
+
+        cameraProvider?.unbindAll()
+        cameraProvider?.bindToLifecycle(
+            this as LifecycleOwner,
+            cameraSelector
+        )
+
+        cameraProviderFuture.addListener({
+            bindPreview(lensFacing)
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    @SuppressLint("UnsafeOptInUsageError", "RestrictedApi", "SuspiciousIndentation")
+    private fun bindPreview(lensFacing: Int) {
+    if (imageProcessor != null) imageProcessor!!.stop()
+        imageProcessor =
+            try {
+                PoseDetectorProcessor(
+                    this,
+                    poseDetector,
+                    showInFrameLikelihood = true,
+                    visualizeZ = false,
+                    rescaleZForVisualization = false,
+                    runClassification = true,
+                    isStreamMode = true
+                )
+            } catch (e: Exception) {
+                Toast.makeText(
+                    applicationContext,
+                    "Can not create image processor: " + e.localizedMessage,
+                    Toast.LENGTH_LONG
+                ).show()
+                return
+            }
+
+        imageAnalysis = ImageAnalysis.Builder()
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+
+        imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
+            if (imageProxy.image != null) {
+                val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+                val isImageFlipped = lensFacing == CameraSelector.LENS_FACING_FRONT
+
+                if (rotationDegrees == 0 || rotationDegrees == 180)
+                    binding.graphicOverlay.setImageSourceInfo(
+                        imageProxy.width,
+                        imageProxy.height,
+                        isImageFlipped
+                    )
+                else
+                    binding.graphicOverlay.setImageSourceInfo(
+                        imageProxy.height,
+                        imageProxy.width,
+                        isImageFlipped
+                    )
+
+                try {
+                    imageProcessor?.processImageProxy(imageProxy, binding.graphicOverlay)
+                } catch (e: MlKitException) {
+                    Log.e("TAG", "Failed to process image. Error: " + e.localizedMessage)
+                    Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        videoCapture = VideoCapture.Builder()
+            .setDefaultCaptureConfig(CaptureConfig.defaultEmptyCaptureConfig())
+//            .setBackgroundExecutor(Dispatchers.IO as Executor)
+           // .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+            .setTargetResolution(Size(binding.myCameraView.measuredWidth, binding.myCameraView.measuredHeight))
+            .build()
+
+        try {
+            cameraProvider?.bindToLifecycle(
+                this as LifecycleOwner,
+                cameraSelector,
+                imageAnalysis,
+                videoCapture
+            )?.cameraControl?.enableTorch(flashOn == "yes")
+        } catch (e: Exception) {
+            toast(applicationContext, "This device is not supported")
+            Log.d("TAGtrycatch", "bindPreview: ${e.message.toString()}")
+        }
+
+        val file = File(
+            filesDir.absolutePath,
+            "${category}_Video_${System.currentTimeMillis()}.mp4"
+        )
+
+        // camera:core lib
+        val options = VideoCapture.OutputFileOptions
+            .Builder(file)
+            .build()
+
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) toast(this, "Please allow audio recording permission")
+
+        videoCapture.startRecording(
+            options,
+            ContextCompat.getMainExecutor(this),
+            object : VideoCapture.OnVideoSavedCallback {
+                override fun onVideoSaved(outputFileResults: VideoCapture.OutputFileResults) {
+                    Log.d("TAGsavedvid01", "onVideoSaved: ${outputFileResults.savedUri}")
+                }
+
+                override fun onError(videoCaptureError: Int, message: String, cause: Throwable?) {
+                    toast(applicationContext, message.toString())
+                    Log.d("TAGsavedvid02", "onVideoSaved: ${videoCaptureError}//${message}")
+                }
+            })
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    override fun onResume() {
+        super.onResume()
+        if (isLensBack == "yes") startCamera(CameraSelector.LENS_FACING_BACK)
+        else startCamera(CameraSelector.LENS_FACING_FRONT)
+        binding.stopRecordingButton.visibility = View.VISIBLE
+    }
+
+    @SuppressLint("RestrictedApi")
+    override fun onStop() {
+        super.onStop()
+        imageProcessor?.run { this.stop() }
+        videoCapture.stopRecording()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        imageProcessor?.run { this.stop() }
+    }
+}
+
+
+
+
+
+
+
+
+
+
 
 //        binding.rotateCameraIconFront.setOnClickListener {
 //            binding.rotateCameraIconBack.visibility = View.VISIBLE
@@ -124,155 +289,11 @@ class CamActivity : AppCompatActivity() {
 //                imageAnalysis
 //            )?.cameraControl?.enableTorch(flashOn)
 //        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.R)
-    private fun startCamera(lensFacing: Int) {
-        val options = PoseDetectorOptions.Builder()
-            .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
-            .build()
-        poseDetector = PoseDetection.getClient(options)
-
-        cameraSelector = CameraSelector.Builder()
-            .requireLensFacing(lensFacing)
-            .build()
-
-        cameraProvider?.unbindAll() //videoCapture
-        cameraProvider?.bindToLifecycle(
-            this as LifecycleOwner,
-            cameraSelector
-        )
-
-        cameraProviderFuture.addListener({
-            bindPreview(lensFacing)
-        }, ContextCompat.getMainExecutor(this))
-    }
-
-    @RequiresApi(Build.VERSION_CODES.R)
-    @SuppressLint("UnsafeOptInUsageError", "RestrictedApi")
-    private fun bindPreview(lensFacing: Int) {
-    if (imageProcessor != null) imageProcessor!!.stop()
-        imageProcessor =
-            try {
-                PoseDetectorProcessor(
-                    this,
-                    poseDetector,
-                    showInFrameLikelihood = true,
-                    visualizeZ = false,
-                    rescaleZForVisualization = false,
-                    runClassification = true,
-                    isStreamMode = true
-                )
-            } catch (e: Exception) {
-                Toast.makeText(
-                    applicationContext,
-                    "Can not create image processor: " + e.localizedMessage,
-                    Toast.LENGTH_LONG
-                ).show()
-                return
-            }
-
-        videoCapture = VideoCapture.Builder()
-            .setDefaultCaptureConfig(CaptureConfig.defaultEmptyCaptureConfig())
-            .setBackgroundExecutor(Dispatchers.IO as Executor)
-            .setTargetResolution(Size(binding.myCameraView.measuredWidth, binding.myCameraView.measuredHeight))
-            .build()
-
-        imageAnalysis = ImageAnalysis.Builder()
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .build()
-
-        imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
-            if (imageProxy.image != null) {
-                val rotationDegrees = imageProxy.imageInfo.rotationDegrees
-                val isImageFlipped = lensFacing == CameraSelector.LENS_FACING_FRONT
-
-                if (rotationDegrees == 0 || rotationDegrees == 180)
-                    binding.graphicOverlay.setImageSourceInfo(
-                        imageProxy.width,
-                        imageProxy.height,
-                        isImageFlipped
-                    )
-                else
-                    binding.graphicOverlay.setImageSourceInfo(
-                        imageProxy.height,
-                        imageProxy.width,
-                        isImageFlipped
-                    )
-
-                try {
-                    imageProcessor?.processImageProxy(imageProxy, binding.graphicOverlay)
-                } catch (e: MlKitException) {
-                    Log.e("TAG", "Failed to process image. Error: " + e.localizedMessage)
-                    Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
-        try {
-            cameraProvider?.bindToLifecycle(
-                this as LifecycleOwner,
-                cameraSelector,
-                imageAnalysis,
-                videoCapture
-            )?.cameraControl?.enableTorch(flashOn == "yes")
-        } catch (e: Exception) {
-            toast(applicationContext, "This device is not supported")
-            Log.d("TAGtrycatch", "bindPreview: ${e.message.toString()}")
-        }
-
-        val file = File(
-            filesDir.absolutePath,
-            "mlkit_video_${System.currentTimeMillis()}.mp4"
-        )
-
-        // camera:core lib
-        val options = VideoCapture.OutputFileOptions
-            .Builder(file)
-            .build()
-
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.RECORD_AUDIO
-            ) != PackageManager.PERMISSION_GRANTED
-        ) toast(this, "Please allow audio recording permission")
-
-        videoCapture.startRecording(
-            options,
-            ContextCompat.getMainExecutor(this),
-            object : VideoCapture.OnVideoSavedCallback {
-                override fun onVideoSaved(outputFileResults: VideoCapture.OutputFileResults) {
-                    Log.d("TAGsavedvid01", "onVideoSaved: ${outputFileResults.savedUri}")
-                }
-
-                override fun onError(videoCaptureError: Int, message: String, cause: Throwable?) {
-                    toast(applicationContext, message.toString())
-                    Log.d("TAGsavedvid02", "onVideoSaved: ${videoCaptureError}//${message}")
-                }
-            })
-    }
 
 
-    @RequiresApi(Build.VERSION_CODES.R)
-    override fun onResume() {
-        super.onResume()
-        if (isLensBack == "yes") startCamera(CameraSelector.LENS_FACING_BACK)
-        else startCamera(CameraSelector.LENS_FACING_FRONT)
-        binding.stopRecordingButton.visibility = View.VISIBLE
-    }
 
-    @SuppressLint("RestrictedApi")
-    override fun onStop() {
-        super.onStop()
-        imageProcessor?.run { this.stop() }
-        videoCapture.stopRecording()
-    }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        imageProcessor?.run { this.stop() }
-    }
-}
+
 
 
 // val inputImage = InputImage.fromMediaImage(mediaImage, rotationDegrees)

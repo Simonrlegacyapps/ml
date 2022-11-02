@@ -28,8 +28,7 @@ import kotlinx.android.synthetic.main.activity_cam.*
 import java.io.File
 import java.io.IOException
 
-class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener,
-    MoviePlayer.PlayerFeedback {
+class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener, MoviePlayer.PlayerFeedback {
     private lateinit var poseDetector: PoseDetector
     lateinit var binding: ActivityVideoBinding
     private var imageProcessor: VisionImageProcessor? = null
@@ -54,6 +53,10 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener,
         val mediaMetadataRetriever = MediaMetadataRetriever()
         mediaMetadataRetriever.setDataSource(this, mUri)
         binding.imgView.setImageBitmap(mediaMetadataRetriever.getFrameAtIndex(0))
+
+        binding.ivBackBtn.setOnClickListener {
+            finish()
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.P)
@@ -105,14 +108,13 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener,
             newWidth.toFloat() / viewWidth,
             newHeight.toFloat() / viewHeight
         )
-        //txform.postRotate(10);          // just for fun
         txform.postTranslate(xoff.toFloat(), yoff.toFloat())
         binding.mTextureView.setTransform(txform)
     }
 
     private fun setUpPoseDetect() {
         val options = PoseDetectorOptions.Builder()
-            .setDetectorMode(PoseDetectorOptions.CPU_GPU)  //STREAM_MODE
+            .setDetectorMode(PoseDetectorOptions.STREAM_MODE) //CPU_GPU //STREAM_MODE
             .build()
         poseDetector = PoseDetection.getClient(options)
 
@@ -173,22 +175,7 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener,
                 Log.e("TAG", "Failed to process image. Error: " + e.localizedMessage)
                 Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT).show()
             }
-
-
-//            val inputImage = InputImage.fromBitmap(bm, 0)
-//            poseDetector.process(inputImage)
-//                .addOnSuccessListener { pose ->
-//                    if (binding.parentLayout.childCount > 3) binding.parentLayout.removeViewAt(3)
-//                 //  binding.imgView.setImageBitmap(bm)
-//                    if (pose.allPoseLandmarks.isNotEmpty()) {
-//                        binding.parentLayout.addView(Draw(applicationContext, pose))
-//                    }
-//                    Log.d("LOG:", "Success")
-//                }
-//                .addOnFailureListener {
-//                    Log.d("LOG:imagfailed", it.message.toString())
-//                }
-       }  else Log.d("LOG:", "null")
+        }  else Log.d("LOG:", "null")
     }
 
     override fun playbackStopped() {

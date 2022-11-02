@@ -137,7 +137,7 @@
             android:layout_marginStart="@dimen/_12ssp"
             android:layout_marginEnd="@dimen/_6ssp"
             android:layout_weight="2"
-            android:backgroundTint="@color/teal_700"
+            android:backgroundTint="@color/grey"
             android:includeFontPadding="false"
             android:text="Start Recording"
             android:textColor="@color/white"
@@ -153,7 +153,7 @@
             android:layout_weight="2"
             android:backgroundTint="@color/teal_200"
             android:includeFontPadding="false"
-            android:text="Recording List"
+            android:text="Playback List"
             android:textColor="@color/white"
             android:textSize="15sp" />
     </LinearLayout>
