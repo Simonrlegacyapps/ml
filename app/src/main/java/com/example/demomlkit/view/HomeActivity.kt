@@ -54,6 +54,7 @@ class HomeActivity : AppCompatActivity(), CategoriesAdapter.OnCatClickInterface 
             binding.rotateCameraIconFront.visibility = View.GONE
 
             binding.myCameraView.facing = Facing.FRONT
+            isLensBack = "no"
         }
         binding.rotateCameraIconBack.setOnClickListener {
             binding.rotateCameraIconBack.visibility = View.GONE
@@ -62,6 +63,7 @@ class HomeActivity : AppCompatActivity(), CategoriesAdapter.OnCatClickInterface 
             binding.flashIconOff.visibility = View.VISIBLE
 
             binding.myCameraView.facing = Facing.BACK
+            isLensBack = "yes"
         }
         binding.flashIconOn.setOnClickListener {
             binding.flashIconOn.visibility = View.GONE

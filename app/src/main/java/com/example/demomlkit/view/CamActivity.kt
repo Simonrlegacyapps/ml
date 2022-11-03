@@ -2,20 +2,26 @@ package com.example.demomlkit.view
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.os.*
+import android.provider.MediaStore
 import android.util.Log
 import android.util.Size
 import android.view.View
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.*
 import androidx.camera.core.AspectRatio.RATIO_16_9
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.impl.CaptureConfig
+import androidx.camera.core.impl.Config.OptionPriority
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.video.*
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.util.Consumer
 import androidx.lifecycle.LifecycleOwner
 import com.example.demomlkit.databinding.ActivityCamBinding
 import com.example.demomlkit.utils.*
@@ -28,12 +34,14 @@ import kotlinx.coroutines.Dispatchers
 import java.io.*
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
+import androidx.camera.core.*
+import androidx.camera.core.VideoCapture
 
 class CamActivity : AppCompatActivity() {
     lateinit var binding: ActivityCamBinding
     private lateinit var poseDetector: PoseDetector
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
-    private lateinit var preview: Preview
+  //  private lateinit var preview: Preview
     private lateinit var cameraSelector: CameraSelector
     private lateinit var imageAnalysis: ImageAnalysis
     private var cameraProvider: ProcessCameraProvider? = null
@@ -41,7 +49,9 @@ class CamActivity : AppCompatActivity() {
     private lateinit var isLensBack : String
     private lateinit var category : String
     private var imageProcessor: VisionImageProcessor? = null
-    lateinit var videoCapture : VideoCapture
+    private lateinit var videoCapture : VideoCapture //<Recorder>
+    lateinit var recorder : Recorder
+    lateinit var recording : Recording
 
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,7 +76,7 @@ class CamActivity : AppCompatActivity() {
         }
 
         binding.ivBackBtn.setOnClickListener {
-            videoCapture.stopRecording()
+           videoCapture.stopRecording()
             finish()
         }
     }
@@ -148,6 +158,7 @@ class CamActivity : AppCompatActivity() {
             }
         }
 
+
         videoCapture = VideoCapture.Builder()
             .setDefaultCaptureConfig(CaptureConfig.defaultEmptyCaptureConfig())
 //            .setBackgroundExecutor(Dispatchers.IO as Executor)
@@ -155,12 +166,14 @@ class CamActivity : AppCompatActivity() {
             .setTargetResolution(Size(binding.myCameraView.measuredWidth, binding.myCameraView.measuredHeight))
             .build()
 
+        //tryVideoRecord()
+
         try {
             cameraProvider?.bindToLifecycle(
                 this as LifecycleOwner,
                 cameraSelector,
-                imageAnalysis,
-                videoCapture
+                imageAnalysis
+                , videoCapture
             )?.cameraControl?.enableTorch(flashOn == "yes")
         } catch (e: Exception) {
             toast(applicationContext, "This device is not supported")
@@ -198,6 +211,60 @@ class CamActivity : AppCompatActivity() {
             })
     }
 
+//    private fun tryVideoRecord() {
+//        val selector = QualitySelector
+//            .from(
+//                Quality.UHD,
+//                FallbackStrategy.higherQualityOrLowerThan(Quality.SD)
+//            )
+//
+//        recorder = Recorder.Builder()
+//            .setQualitySelector(selector)
+//            .build()
+//        videoCapture = VideoCapture.withOutput(recorder)
+//
+//        val contentValues = ContentValues().apply {
+//            put(MediaStore.MediaColumns.DISPLAY_NAME, "NEW-Video")
+//            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+//        }
+//
+//        val mediaStoreOutputOptions = MediaStoreOutputOptions
+//            .Builder(contentResolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+//            .setContentValues(contentValues)
+//            .build()
+//
+//        if (ActivityCompat.checkSelfPermission(
+//                this,
+//                Manifest.permission.RECORD_AUDIO
+//            ) != PackageManager.PERMISSION_GRANTED
+//        ) return
+//
+//        recording = videoCapture.output
+//            .prepareRecording(this, mediaStoreOutputOptions)
+//            .withAudioEnabled()
+//            .start(ContextCompat.getMainExecutor(this), recordingListener)
+//    }
+//
+//    val recordingListener = Consumer<VideoRecordEvent> { event ->
+//        when(event) {
+//            is VideoRecordEvent.Start -> {
+//                Toast.makeText(applicationContext, "started", Toast.LENGTH_SHORT).show()
+//            }
+//            is VideoRecordEvent.Finalize -> {
+//                val msg = if (!event.hasError()) {
+//                    "Video capture succeeded: ${event.outputResults.outputUri}"
+//                } else {
+//                    // update app state when the capture failed.
+//                    recording?.close()
+////                    recording = null
+//                    "Video capture ends with error: ${event.error}"
+//                }
+//                Toast.makeText(applicationContext, msg, Toast.LENGTH_SHORT)
+//                    .show()
+//            }
+//        }
+//    }
+
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onResume() {
         super.onResume()
@@ -211,6 +278,8 @@ class CamActivity : AppCompatActivity() {
         super.onStop()
         imageProcessor?.run { this.stop() }
         videoCapture.stopRecording()
+        //videoCapture
+        //  recording.stop()
     }
 
     override fun onDestroy() {
@@ -218,14 +287,6 @@ class CamActivity : AppCompatActivity() {
         imageProcessor?.run { this.stop() }
     }
 }
-
-
-
-
-
-
-
-
 
 
 
