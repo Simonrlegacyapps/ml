@@ -1,5 +1,7 @@
 package com.example.demomlkit.view
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.media.MediaMetadataRetriever
@@ -12,15 +14,13 @@ import android.view.TextureView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.example.demomlkit.recorded_video_player.MoviePlayer
 import com.example.demomlkit.recorded_video_player.SpeedControlCallback
 import com.example.demomlkit.databinding.ActivityVideoBinding
-import com.example.demomlkit.utils.Draw
-import com.example.demomlkit.utils.PoseDetectorProcessor
-import com.example.demomlkit.utils.VisionImageProcessor
-import com.example.demomlkit.utils.toast
+import com.example.demomlkit.utils.*
 import com.google.mlkit.common.MlKitException
-import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
@@ -32,10 +32,37 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener, M
     private lateinit var poseDetector: PoseDetector
     lateinit var binding: ActivityVideoBinding
     private var imageProcessor: VisionImageProcessor? = null
-
     private var mPlayTask: MoviePlayer.PlayTask? = null
     private lateinit var uri: Uri
     private var mSurfaceTextureReady = false
+
+    companion object {
+        private const val REQUEST_CODE_PERMISSIONS = 10
+        private val REQUIRED_PERMISSIONS =
+            mutableListOf(
+                Manifest.permission.CAMERA,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ).apply {
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+                    add(Manifest.permission.CAMERA)
+                    add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    add(Manifest.permission.RECORD_AUDIO)
+                    add(Manifest.permission.READ_EXTERNAL_STORAGE)
+                }
+            }.toTypedArray()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_PERMISSIONS) {
+            if (allPermissionsGranted()) return
+            else toast(this, "Permissions are not granted")
+        }
+    }
 
 
     @RequiresApi(Build.VERSION_CODES.P)
@@ -43,6 +70,7 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener, M
         super.onCreate(savedInstanceState)
         binding = ActivityVideoBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        checkAllPermissions()
 
         binding.mTextureView.surfaceTextureListener = this
 
@@ -57,6 +85,19 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener, M
         binding.ivBackBtn.setOnClickListener {
             finish()
         }
+    }
+
+    private fun checkAllPermissions() {
+        if (allPermissionsGranted()) return
+        else ActivityCompat.requestPermissions(
+            this,
+            REQUIRED_PERMISSIONS,
+            REQUEST_CODE_PERMISSIONS
+        )
+    }
+
+    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
+        ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
     }
 
     @RequiresApi(Build.VERSION_CODES.P)

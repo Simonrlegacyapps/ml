@@ -2,26 +2,21 @@ package com.example.demomlkit.view
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.os.*
-import android.provider.MediaStore
 import android.util.Log
 import android.util.Size
 import android.view.View
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.AspectRatio.RATIO_16_9
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.impl.CaptureConfig
-import androidx.camera.core.impl.Config.OptionPriority
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.util.Consumer
 import androidx.lifecycle.LifecycleOwner
 import com.example.demomlkit.databinding.ActivityCamBinding
 import com.example.demomlkit.utils.*
@@ -30,9 +25,7 @@ import com.google.mlkit.common.MlKitException
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
-import kotlinx.coroutines.Dispatchers
 import java.io.*
-import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import androidx.camera.core.*
 import androidx.camera.core.VideoCapture
@@ -41,7 +34,6 @@ class CamActivity : AppCompatActivity() {
     lateinit var binding: ActivityCamBinding
     private lateinit var poseDetector: PoseDetector
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
-  //  private lateinit var preview: Preview
     private lateinit var cameraSelector: CameraSelector
     private lateinit var imageAnalysis: ImageAnalysis
     private var cameraProvider: ProcessCameraProvider? = null
@@ -49,15 +41,42 @@ class CamActivity : AppCompatActivity() {
     private lateinit var isLensBack : String
     private lateinit var category : String
     private var imageProcessor: VisionImageProcessor? = null
-    private lateinit var videoCapture : VideoCapture //<Recorder>
-    lateinit var recorder : Recorder
-    lateinit var recording : Recording
+    private lateinit var videoCapture : VideoCapture
+
+    companion object {
+        private const val REQUEST_CODE_PERMISSIONS = 10
+        private val REQUIRED_PERMISSIONS =
+            mutableListOf(
+                Manifest.permission.CAMERA,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ).apply {
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+                    add(Manifest.permission.CAMERA)
+                    add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    add(Manifest.permission.RECORD_AUDIO)
+                    add(Manifest.permission.READ_EXTERNAL_STORAGE)
+                }
+            }.toTypedArray()
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_CODE_PERMISSIONS) {
+            if (allPermissionsGranted()) return
+            else toast(this, "Permissions are not granted")
+        }
+    }
 
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityCamBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        checkAllPermissions()
         initListeners()
 
         cameraProviderFuture = ProcessCameraProvider.getInstance(this)
@@ -65,6 +84,19 @@ class CamActivity : AppCompatActivity() {
         flashOn = intent.extras?.getString("isFlash")!!
         isLensBack = intent.extras?.getString("isLensBack")!!
         category = intent.extras?.getString("category")!!
+    }
+
+    private fun checkAllPermissions() {
+        if (allPermissionsGranted()) return
+        else ActivityCompat.requestPermissions(
+            this,
+            REQUIRED_PERMISSIONS,
+            REQUEST_CODE_PERMISSIONS
+        )
+    }
+
+    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
+        ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
     }
 
     @SuppressLint("RestrictedApi")
@@ -161,12 +193,8 @@ class CamActivity : AppCompatActivity() {
 
         videoCapture = VideoCapture.Builder()
             .setDefaultCaptureConfig(CaptureConfig.defaultEmptyCaptureConfig())
-//            .setBackgroundExecutor(Dispatchers.IO as Executor)
-           // .setTargetAspectRatio(AspectRatio.RATIO_4_3)
             .setTargetResolution(Size(binding.myCameraView.measuredWidth, binding.myCameraView.measuredHeight))
             .build()
-
-        //tryVideoRecord()
 
         try {
             cameraProvider?.bindToLifecycle(
@@ -211,60 +239,6 @@ class CamActivity : AppCompatActivity() {
             })
     }
 
-//    private fun tryVideoRecord() {
-//        val selector = QualitySelector
-//            .from(
-//                Quality.UHD,
-//                FallbackStrategy.higherQualityOrLowerThan(Quality.SD)
-//            )
-//
-//        recorder = Recorder.Builder()
-//            .setQualitySelector(selector)
-//            .build()
-//        videoCapture = VideoCapture.withOutput(recorder)
-//
-//        val contentValues = ContentValues().apply {
-//            put(MediaStore.MediaColumns.DISPLAY_NAME, "NEW-Video")
-//            put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
-//        }
-//
-//        val mediaStoreOutputOptions = MediaStoreOutputOptions
-//            .Builder(contentResolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
-//            .setContentValues(contentValues)
-//            .build()
-//
-//        if (ActivityCompat.checkSelfPermission(
-//                this,
-//                Manifest.permission.RECORD_AUDIO
-//            ) != PackageManager.PERMISSION_GRANTED
-//        ) return
-//
-//        recording = videoCapture.output
-//            .prepareRecording(this, mediaStoreOutputOptions)
-//            .withAudioEnabled()
-//            .start(ContextCompat.getMainExecutor(this), recordingListener)
-//    }
-//
-//    val recordingListener = Consumer<VideoRecordEvent> { event ->
-//        when(event) {
-//            is VideoRecordEvent.Start -> {
-//                Toast.makeText(applicationContext, "started", Toast.LENGTH_SHORT).show()
-//            }
-//            is VideoRecordEvent.Finalize -> {
-//                val msg = if (!event.hasError()) {
-//                    "Video capture succeeded: ${event.outputResults.outputUri}"
-//                } else {
-//                    // update app state when the capture failed.
-//                    recording?.close()
-////                    recording = null
-//                    "Video capture ends with error: ${event.error}"
-//                }
-//                Toast.makeText(applicationContext, msg, Toast.LENGTH_SHORT)
-//                    .show()
-//            }
-//        }
-//    }
-
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onResume() {
         super.onResume()
@@ -274,17 +248,10 @@ class CamActivity : AppCompatActivity() {
     }
 
     @SuppressLint("RestrictedApi")
-    override fun onStop() {
-        super.onStop()
+    override fun onPause() {
+        super.onPause()
         imageProcessor?.run { this.stop() }
         videoCapture.stopRecording()
-        //videoCapture
-        //  recording.stop()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        imageProcessor?.run { this.stop() }
     }
 }
 

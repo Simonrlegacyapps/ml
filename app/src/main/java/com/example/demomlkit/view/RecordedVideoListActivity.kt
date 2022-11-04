@@ -19,7 +19,6 @@ import java.io.File
 import java.net.URLConnection
 
 class RecordedVideoListActivity : AppCompatActivity(), RecordedVideoAdapter.OnVideoClickInterface {
-
     lateinit var binding: ActivityRecordedVideoListBinding
     lateinit var recordedVideoFile : ArrayList<File>
 
@@ -37,7 +36,6 @@ class RecordedVideoListActivity : AppCompatActivity(), RecordedVideoAdapter.OnVi
             recordedVideoFile.add(file[i])
         }
         setupRecyclerview()
-
         binding.ivBackBtn.setOnClickListener {
             finish()
         }

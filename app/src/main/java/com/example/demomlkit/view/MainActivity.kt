@@ -1,23 +1,20 @@
 package com.example.demomlkit.view
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
+import android.provider.Settings
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.demomlkit.R
 import com.example.demomlkit.databinding.ActivityMainBinding
 import com.example.demomlkit.utils.PrefManager
 import com.example.demomlkit.utils.toast
-import com.google.common.util.concurrent.ListenableFuture
-import com.google.mlkit.vision.pose.PoseDetector
 
 class MainActivity : AppCompatActivity() {
     lateinit var binding: ActivityMainBinding
@@ -48,15 +45,39 @@ class MainActivity : AppCompatActivity() {
             if (allPermissionsGranted()) {
                 startActivity(Intent(this, HomeActivity::class.java))
                 finish()
-            } else toast(this, "Permissions not granted by the user.")
+            } else onPermissionDenied()
         }
+    }
+
+    private fun onPermissionDenied() {
+        val alertDialog: AlertDialog.Builder = AlertDialog.Builder(this)
+        alertDialog.setTitle("Allow Permissions")
+        alertDialog.setMessage("Please allow the required permissions")
+        alertDialog.setIcon(R.drawable.ic_permission_foreground)
+        alertDialog.setPositiveButton(
+            "Allow"
+        ) { dialog, which ->
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            val uri = Uri.fromParts("package", packageName, null)
+            intent.data = uri
+            startActivity(intent)
+        }
+        alertDialog.setNegativeButton(
+            "NO"
+        ) { dialog, which ->
+            dialog.cancel()
+        }
+        alertDialog.show()
+    }
+
+    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
+        ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
         checkUserStatus()
     }
 
@@ -76,9 +97,5 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
-    }
-
-    private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
-        ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
     }
 }
