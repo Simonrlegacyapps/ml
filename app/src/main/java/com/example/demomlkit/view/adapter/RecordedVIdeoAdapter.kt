@@ -25,7 +25,6 @@ class RecordedVideoAdapter(private val videoList : ArrayList<File>, private val 
 
     class ViewHolder(private val binding: CategoryCustomLayoutBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(s: File) {
-        //    binding.tvCat.setTextColor(ContextCompat.getColor(itemView.context, R.color.white))
             binding.tvCat.text = s.name
         }
     }

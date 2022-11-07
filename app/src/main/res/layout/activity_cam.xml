@@ -44,7 +44,6 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:cameraAudio="on"
-        app:cameraEngine="camera2"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/rlToolBar" />
 
@@ -84,6 +83,9 @@
         android:textSize="@dimen/_11sdp"
         app:layout_constraintBottom_toBottomOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+
 
 
     <!-- <ImageView

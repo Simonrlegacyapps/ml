@@ -120,7 +120,6 @@ dependencies {
     // HBRecorder
 //    implementation 'com.github.HBiSoft:HBRecorder:2.0.5'
 
-
     // bitmap array to video
     //implementation 'com.github.israel-fl:bitmap2video:2.0.0'
 

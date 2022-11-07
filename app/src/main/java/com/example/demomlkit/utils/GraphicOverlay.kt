@@ -46,7 +46,14 @@ class GraphicOverlay(context: Context?, attrs: AttributeSet?) : View(context, at
 
         abstract fun draw(canvas: Canvas?)
 
-        protected fun drawRect(canvas: Canvas, left: Float, top: Float, right: Float, bottom: Float, paint: Paint?) {
+        protected fun drawRect(
+            canvas: Canvas,
+            left: Float,
+            top: Float,
+            right: Float,
+            bottom: Float,
+            paint: Paint?
+        ) {
             canvas.drawRect(left, top, right, bottom, paint!!)
         }
 
@@ -88,8 +95,8 @@ class GraphicOverlay(context: Context?, attrs: AttributeSet?) : View(context, at
         }
 
         /**
-         * Given the zInImagePixel, update the color for the passed paint. The color will be
-         * more red if the `zInImagePixel` is smaller, or more blue ish vice versa. This is
+         * zInImagePixel update the color for the passed paint. The color will be
+         * more red if the zInImagePixel is smaller, & more blue if the vice versa. This is
          * useful to visualize the z value of landmarks via color for features like Pose and Face Mesh.
          */
         fun updatePaintColorByZValue(
@@ -200,7 +207,7 @@ class GraphicOverlay(context: Context?, attrs: AttributeSet?) : View(context, at
     /** Draws the overlay with its associated graphic objects.  */
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-      synchronized(lock) {
+        synchronized(lock) {
             updateTransformationIfNeeded()
             for (graphic in graphics) {
                 graphic.draw(canvas)

@@ -25,7 +25,6 @@ class PoseDetectorProcessor(
     private val runClassification: Boolean,
     private val isStreamMode: Boolean
 ) : VisionProcessorBase<PoseDetectorProcessor.PoseWithClassification>(context) {
-
     private val detector: PoseDetector = options
     private val classificationExecutor: Executor
     private var poseClassifierProcessor: PoseClassifierProcessor? = null
