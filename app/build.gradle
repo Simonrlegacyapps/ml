@@ -11,7 +11,7 @@ android {
     defaultConfig {
         ndkVersion = "21.1.6352462"
         applicationId "com.example.demomlkit"
-        minSdkVersion 21
+        minSdk 24
         targetSdkVersion 31
         versionCode 1
         versionName "1.0"
@@ -134,6 +134,8 @@ dependencies {
     implementation 'com.otaliastudios:cameraview:2.7.2'
 
   // implementation 'com.github.wseemann:FFmpegMediaMetadataRetriever-core:1.0.15'
+
+    implementation 'com.uncorkedstudios.android:recordable-surfaceview:1.5.7'
 }
 
 configurations {
