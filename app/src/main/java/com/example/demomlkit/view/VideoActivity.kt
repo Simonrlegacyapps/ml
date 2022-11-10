@@ -2,33 +2,27 @@ package com.example.demomlkit.view
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Matrix
-import android.graphics.SurfaceTexture
-import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
-import android.view.Surface
-import android.view.TextureView
+import android.util.DisplayMetrics
+import android.widget.MediaController
+import android.widget.RelativeLayout
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.example.demomlkit.recorded_video_player.MoviePlayer
-import com.example.demomlkit.recorded_video_player.SpeedControlCallback
 import com.example.demomlkit.databinding.ActivityVideoBinding
+import com.example.demomlkit.recorded_video_player.MoviePlayer
 import com.example.demomlkit.utils.*
-import com.google.mlkit.common.MlKitException
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import kotlinx.android.synthetic.main.activity_cam.*
-import java.io.File
-import java.io.IOException
 
-class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener, MoviePlayer.PlayerFeedback {
+
+class VideoActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener, MoviePlayer.PlayerFeedback {
     private lateinit var poseDetector: PoseDetector
     lateinit var binding: ActivityVideoBinding
     private var imageProcessor: VisionImageProcessor? = null
@@ -72,17 +66,67 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener, M
         setContentView(binding.root)
         checkAllPermissions()
 
-        binding.mTextureView.surfaceTextureListener = this
+        //binding.mTextureView.surfaceTextureListener = this
 
-        setUpPoseDetect()
+      //  setUpPoseDetect()
 
         val mUri = Uri.parse(intent.extras?.getString("file_uri"))
 
-        val mediaMetadataRetriever = MediaMetadataRetriever()
-        mediaMetadataRetriever.setDataSource(this, mUri)
-        binding.imgView.setImageBitmap(mediaMetadataRetriever.getFrameAtIndex(0))
+//        val mediaMetadataRetriever = MediaMetadataRetriever()
+//        mediaMetadataRetriever.setDataSource(this, mUri)
+//        binding.imgView.setImageBitmap(mediaMetadataRetriever.getFrameAtIndex(0))
 
         binding.ivBackBtn.setOnClickListener {
+            finish()
+        }
+        playRecordedVideo(mUri)
+    }
+
+    private fun playRecordedVideo(mUri: Uri) {
+        val mediaController = MediaController(this)
+        mediaController.setAnchorView(binding.videoView)
+        mediaController.setMediaPlayer(binding.videoView)
+        binding.videoView.setMediaController(mediaController)
+
+        binding.videoView.setVideoURI(mUri)
+        binding.videoView.requestFocus()
+
+        binding.videoView.setOnPreparedListener { mp ->
+//            val videoRatio = mp.videoWidth / mp.videoHeight.toFloat()
+//            val screenRatio = binding.videoView.width / binding.videoView.height.toFloat()
+//            val scaleX = videoRatio / screenRatio
+//            if (scaleX >= 1f)
+//                binding.videoView.scaleX = scaleX
+//            else
+//                binding.videoView.scaleY = 1f / scaleX
+
+
+            // so it fits on the screen
+//            val videoWidth = binding.videoView.width //videoWidth
+//            val videoHeight = binding.videoView.height //videoHeight
+//            val videoProportion = videoWidth.toFloat() / videoHeight.toFloat()
+//            val screenWidth = windowManager.defaultDisplay.width
+//            val screenHeight = windowManager.defaultDisplay.height
+//            val screenProportion = screenWidth.toFloat() / screenHeight.toFloat()
+//            val lp = binding.parentLayout.layoutParams
+//
+//            if (videoProportion > screenProportion) {
+//                lp.width = screenWidth
+//                lp.height = (screenWidth.toFloat() / videoProportion).toInt()
+//            } else {
+//                lp.width = (videoProportion * screenHeight.toFloat()).toInt()
+//                lp.height = screenHeight
+//            }
+//            binding.parentLayout.layoutParams = lp
+
+            binding.videoView.scaleX = 1.25f
+            binding.videoView.scaleY = 1.156f
+            binding.videoView.start()
+        }
+
+        binding.videoView.setOnCompletionListener {
+            toast(this, "Video finished")
+            binding.videoView.stopPlayback()
             finish()
         }
     }
@@ -100,58 +144,58 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener, M
         ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
     }
 
-    @RequiresApi(Build.VERSION_CODES.P)
-    private fun play() {
-        uri = Uri.parse(intent.extras?.getString("file_uri"))
-        val path = intent.extras?.getString("file_path")
+//    @RequiresApi(Build.VERSION_CODES.P)
+//    private fun play() {
+//        uri = Uri.parse(intent.extras?.getString("file_uri"))
+//        val path = intent.extras?.getString("file_path")
+//
+//        val callback = SpeedControlCallback()
+//        //callback.setFixedPlaybackRate(30)
+//
+//        val st: SurfaceTexture? = binding.mTextureView.surfaceTexture
+//        val surface = Surface(st)
+//        var player: MoviePlayer? = null
+//
+//        if (uri != null) {
+//            try {
+//                player = MoviePlayer(File(path), surface, callback)
+//            } catch (io: IOException) {
+//                toast(this, io.message.toString())
+//                surface.release()
+//                return
+//            }
+//            adjustAspectRatio(player?.videoWidth, player?.videoHeight)
+//            mPlayTask = MoviePlayer.PlayTask(player, this)
+//            mPlayTask!!.execute()
+//        }
+//    }
 
-        val callback = SpeedControlCallback()
-        //callback.setFixedPlaybackRate(30)
-
-        val st: SurfaceTexture? = binding.mTextureView.surfaceTexture
-        val surface = Surface(st)
-        var player: MoviePlayer? = null
-
-        if (uri != null) {
-            try {
-                player = MoviePlayer(File(path), surface, callback)
-            } catch (io: IOException) {
-                toast(this, io.message.toString())
-                surface.release()
-                return
-            }
-            adjustAspectRatio(player?.videoWidth, player?.videoHeight)
-            mPlayTask = MoviePlayer.PlayTask(player, this)
-            mPlayTask!!.execute()
-        }
-    }
-
-    private fun adjustAspectRatio(videoWidth: Int, videoHeight: Int) {
-        val viewWidth = binding.mTextureView.width
-        val viewHeight = binding.mTextureView.height
-        val aspectRatio = videoHeight.toDouble() / videoWidth
-        val newWidth: Int
-        val newHeight: Int
-        if (viewHeight > (viewWidth * aspectRatio).toInt()) {
-            // limited by narrow width; restrict height
-            newWidth = viewWidth
-            newHeight = (viewWidth * aspectRatio).toInt()
-        } else {
-            // limited by short height; restrict width
-            newWidth = (viewHeight / aspectRatio).toInt()
-            newHeight = viewHeight
-        }
-        val xoff = (viewWidth - newWidth) / 2
-        val yoff = (viewHeight - newHeight) / 2
-        val txform = Matrix()
-        binding.mTextureView.getTransform(txform)
-        txform.setScale(
-            newWidth.toFloat() / viewWidth,
-            newHeight.toFloat() / viewHeight
-        )
-        txform.postTranslate(xoff.toFloat(), yoff.toFloat())
-        binding.mTextureView.setTransform(txform)
-    }
+//    private fun adjustAspectRatio(videoWidth: Int, videoHeight: Int) {
+//        val viewWidth = binding.mTextureView.width
+//        val viewHeight = binding.mTextureView.height
+//        val aspectRatio = videoHeight.toDouble() / videoWidth
+//        val newWidth: Int
+//        val newHeight: Int
+//        if (viewHeight > (viewWidth * aspectRatio).toInt()) {
+//            // limited by narrow width; restrict height
+//            newWidth = viewWidth
+//            newHeight = (viewWidth * aspectRatio).toInt()
+//        } else {
+//            // limited by short height; restrict width
+//            newWidth = (viewHeight / aspectRatio).toInt()
+//            newHeight = viewHeight
+//        }
+//        val xoff = (viewWidth - newWidth) / 2
+//        val yoff = (viewHeight - newHeight) / 2
+//        val txform = Matrix()
+//        binding.mTextureView.getTransform(txform)
+//        txform.setScale(
+//            newWidth.toFloat() / viewWidth,
+//            newHeight.toFloat() / viewHeight
+//        )
+//        txform.postTranslate(xoff.toFloat(), yoff.toFloat())
+//        binding.mTextureView.setTransform(txform)
+//    }
 
     private fun setUpPoseDetect() {
         val options = PoseDetectorOptions.Builder()
@@ -182,62 +226,62 @@ class VideoActivity : AppCompatActivity(), TextureView.SurfaceTextureListener, M
             }
     }
 
-    @RequiresApi(Build.VERSION_CODES.P)
-    override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
-        mSurfaceTextureReady = true
-        val bm = binding.mTextureView.bitmap
-        binding.imgView.setImageBitmap(bm)
-        play()
-    }
-
-    override fun onSurfaceTextureSizeChanged(p0: SurfaceTexture, p1: Int, p2: Int) {
+//    @RequiresApi(Build.VERSION_CODES.P)
+//    override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
+//        mSurfaceTextureReady = true
 //        val bm = binding.mTextureView.bitmap
 //        binding.imgView.setImageBitmap(bm)
-    }
+//        play()
+//    }
+//
+//    override fun onSurfaceTextureSizeChanged(p0: SurfaceTexture, p1: Int, p2: Int) {
+////        val bm = binding.mTextureView.bitmap
+////        binding.imgView.setImageBitmap(bm)
+//    }
+//
+//    override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {
+//        mSurfaceTextureReady = false
+//        return true
+//    }
+//
+//    override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
+//        val bm = binding.mTextureView.bitmap
+//        if (bm != null) {
+//            binding.imgView.setImageBitmap(bm)
+//            binding.graphicOverlay.setImageSourceInfo(
+//                bm.width,
+//                bm.height,
+//                false
+//            )
+//
+//            try {
+//                imageProcessor?.processBitmap(bm, binding.graphicOverlay)
+//            } catch (e: MlKitException) {
+//                Log.e("TAG", "Failed to process image. Error: " + e.localizedMessage)
+//                Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT).show()
+//            }
+//        }  else Log.d("LOG:", "null")
+//    }
+//
+//    override fun playbackStopped() {
+//        if (mPlayTask != null) {
+//            stopPlayback()
+//            mPlayTask!!.waitForStop()
+//            toast(applicationContext, "Video finished")
+//            finish()
+//        }
+   // }
 
-    override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {
-        mSurfaceTextureReady = false
-        return true
-    }
-
-    override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
-        val bm = binding.mTextureView.bitmap
-        if (bm != null) {
-            binding.imgView.setImageBitmap(bm)
-            binding.graphicOverlay.setImageSourceInfo(
-                bm.width,
-                bm.height,
-                false
-            )
-
-            try {
-                imageProcessor?.processBitmap(bm, binding.graphicOverlay)
-            } catch (e: MlKitException) {
-                Log.e("TAG", "Failed to process image. Error: " + e.localizedMessage)
-                Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT).show()
-            }
-        }  else Log.d("LOG:", "null")
-    }
-
-    override fun playbackStopped() {
-        if (mPlayTask != null) {
-            stopPlayback()
-            mPlayTask!!.waitForStop()
-            toast(applicationContext, "Video finished")
-            finish()
-        }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        if (mPlayTask != null) {
-            stopPlayback()
-            mPlayTask!!.waitForStop()
-        }
-        imageProcessor?.run { this.stop() }
-    }
-
-    private fun stopPlayback() {
-        mPlayTask?.requestStop()
-    }
+//    override fun onPause() {
+//        super.onPause()
+//        if (mPlayTask != null) {
+//            stopPlayback()
+//            mPlayTask!!.waitForStop()
+//        }
+//        imageProcessor?.run { this.stop() }
+//    }
+//
+//    private fun stopPlayback() {
+//        mPlayTask?.requestStop()
+//    }
 }

@@ -5,6 +5,7 @@
     android:id="@+id/parentLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     tools:context=".view.VideoActivity">
 
     <RelativeLayout
@@ -38,25 +39,35 @@
             android:textSize="@dimen/_16ssp" />
     </RelativeLayout>
 
-    <TextureView
-        android:id="@+id/mTextureView"
-        android:layout_width="match_parent"
+    <VideoView
+        android:id="@+id/videoView"
+        android:layout_width="0dp"
         android:layout_height="0dp"
+
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/rlToolBar" />
 
-    <ImageView
-        android:id="@+id/imgView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:scaleType="fitXY"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/rlToolBar" />
+    <!--    <TextureView-->
+    <!--        android:id="@+id/mTextureView"-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        android:layout_height="0dp"-->
+    <!--        app:layout_constraintBottom_toBottomOf="parent"-->
+    <!--        app:layout_constraintTop_toBottomOf="@id/rlToolBar" />-->
 
-    <com.example.demomlkit.utils.GraphicOverlay
-        android:id="@+id/graphicOverlay"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/rlToolBar" />
+    <!--    <ImageView-->
+    <!--        android:id="@+id/imgView"-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        android:layout_height="0dp"-->
+    <!--        android:scaleType="fitXY"-->
+    <!--        app:layout_constraintBottom_toBottomOf="parent"-->
+    <!--        app:layout_constraintTop_toBottomOf="@id/rlToolBar" />-->
+
+    <!--    <com.example.demomlkit.utils.GraphicOverlay-->
+    <!--        android:id="@+id/graphicOverlay"-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        android:layout_height="0dp"-->
+    <!--        app:layout_constraintBottom_toBottomOf="parent"-->
+    <!--        app:layout_constraintTop_toBottomOf="@id/rlToolBar" />-->
 </androidx.constraintlayout.widget.ConstraintLayout>

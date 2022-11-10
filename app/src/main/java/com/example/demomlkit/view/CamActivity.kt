@@ -4,6 +4,8 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.PendingIntent
+import android.app.PendingIntent.FLAG_IMMUTABLE
+import android.app.PendingIntent.FLAG_MUTABLE
 import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -18,8 +20,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.util.Size
 import android.util.SparseIntArray
-import android.view.Surface
-import android.view.View
+import android.view.*
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -31,6 +32,10 @@ import androidx.camera.video.*
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat.Type.systemBars
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
 import androidx.lifecycle.LifecycleOwner
 import com.example.demomlkit.R
 import com.example.demomlkit.databinding.ActivityCamBinding
@@ -58,10 +63,7 @@ class CamActivity : AppCompatActivity() {
     private lateinit var category: String
     private var imageProcessor: VisionImageProcessor? = null
     private lateinit var videoCapture: VideoCapture
-//    private lateinit var mMediaProjectionManager : MediaProjectionManager
-//    private lateinit var mRecorder : MediaRecorder
-//    private var mDisplay : VirtualDisplay? = null
-//    private var mMediaProjection : MediaProjection? = null
+
 
     //////
     private var mScreenDensity = 0
@@ -70,9 +72,36 @@ class CamActivity : AppCompatActivity() {
     private var mVirtualDisplay: VirtualDisplay? = null
     private var mMediaProjectionCallback: MediaProjectionCallback? = null
     private var mMediaRecorder: MediaRecorder? = null
-    private var videofile = ""
+    private var videoFile = ""
 
     companion object {
+        class BackGround : Service() {
+            override fun onBind(intent: Intent): IBinder? {
+                return null
+            }
+
+            override fun onCreate() {
+                super.onCreate()
+            }
+
+            override fun onDestroy() {
+                super.onDestroy()
+            }
+
+            override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+                val notificationIntent = Intent(this, MainActivity::class.java)
+                val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
+
+                val notification = NotificationCompat.Builder(this, "CHANNEL_ID")
+                    .setContentTitle("Recording Service")
+                    .setContentText("Running")
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setContentIntent(pendingIntent)
+                    .build()
+                startForeground(1, notification)
+                return START_NOT_STICKY
+            }
+        }
         ///
         private const val TAG = "MainActivity"
         private const val REQUEST_CODE = 1000
@@ -122,6 +151,7 @@ class CamActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityCamBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
         checkAllPermissions()
         initListeners()
 
@@ -132,28 +162,21 @@ class CamActivity : AppCompatActivity() {
         category = intent.extras?.getString("category")!!
 
         // screen record
-//        val metrics = DisplayMetrics()
-//        windowManager.defaultDisplay.getMetrics(metrics)
-//        mScreenDensity = metrics.densityDpi
-//        mMediaRecorder = MediaRecorder()
-//        mProjectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-//        screenShare()
+        screenShare()
+    }
 
-        // try record2
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun screenShare() {
         startForegroundService(Intent(this, BackGround::class.java))
-
         val metrics = DisplayMetrics()
         windowManager.defaultDisplay.getMetrics(metrics)
         mScreenDensity = metrics.densityDpi
         mProjectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        screenShare()
-    }
 
-    private fun screenShare() {
         initRecorder()
         Handler().postDelayed({
             shareScreen()
-        }, 10000)
+        }, 3000)
     }
 
     private fun shareScreen() {
@@ -177,36 +200,31 @@ class CamActivity : AppCompatActivity() {
     private fun initRecorder() {
         mMediaRecorder = MediaRecorder()
         try {
-            val file = File("/storage/emulated/0/Ezy/")
-            if (!file.exists()) {
-                file.mkdirs()
-            }
-            val calendar = Calendar.getInstance()
-            Log.e("e", "Before")
-            val videofile =
-                "/storage/emulated/0/Ezy/Video_" + SimpleDateFormat("dd_MM_yyyy_hh_mm_ss_a").format(
-                    calendar.getTime()
-                ) + ".mp4"
-            val file1 = File(videofile)
+            val file = File("/storage/emulated/0/MLVideos/")
+            if (!file.exists()) file.mkdirs()
+
+            videoFile = "/storage/emulated/0/MLVideos/$category-" + System.currentTimeMillis() + ".mp4"
+
+            val file1 = File(videoFile)
 
             val fileWriter = FileWriter(file1)
             fileWriter.append("")
             fileWriter.flush()
             fileWriter.close()
+
             mMediaRecorder!!.setAudioSource(MediaRecorder.AudioSource.MIC)
             mMediaRecorder!!.setVideoSource(MediaRecorder.VideoSource.SURFACE)
             mMediaRecorder!!.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            Log.e("e", "after")
-            mMediaRecorder!!.setVideoSize(DISPLAY_WIDTH, DISPLAY_HEIGHT)
+            mMediaRecorder!!.setVideoSize(DISPLAY_WIDTH, 1125)
             mMediaRecorder!!.setVideoEncoder(MediaRecorder.VideoEncoder.H264)
             mMediaRecorder!!.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-            mMediaRecorder!!.setVideoEncodingBitRate(512 * 1000)
-            mMediaRecorder!!.setVideoFrameRate(30)
-            mMediaRecorder!!.setVideoEncodingBitRate(3000000)
+//            mMediaRecorder!!.setVideoEncodingBitRate(512 * 1000)
+//            mMediaRecorder!!.setVideoFrameRate(30)
+//            mMediaRecorder!!.setVideoEncodingBitRate(3000000)
             val rotation = windowManager.defaultDisplay.rotation
             val orientation = ORIENTATIONS.get(rotation + 90)
             mMediaRecorder!!.setOrientationHint(orientation)
-            mMediaRecorder!!.setOutputFile(videofile)
+            mMediaRecorder!!.setOutputFile(videoFile)
             mMediaRecorder!!.prepare()
         } catch (e: IOException) {
             e.printStackTrace()
@@ -228,18 +246,13 @@ class CamActivity : AppCompatActivity() {
         destroyMediaProjection()
 
         MediaScannerConnection.scanFile(
-            this, arrayOf(videofile), null
+            this, arrayOf(videoFile), null
         ) { path, uri ->
             Log.i("External", "scanned$path:")
             Log.i("External", "-> uri=$uri")
         }
     }
 
-    public override fun onDestroy() {
-        super.onDestroy()
-        stopService(Intent(this, BackGround::class.java))
-        destroyMediaProjection()
-    }
 
     private fun destroyMediaProjection() {
         if (mMediaProjection != null) {
@@ -267,6 +280,13 @@ class CamActivity : AppCompatActivity() {
     private fun initListeners() {
         binding.stopRecordingButton.setOnClickListener {
             //   videoCapture.stopRecording()
+            mMediaRecorder!!.stop()
+            mMediaRecorder!!.reset()
+            mMediaProjection = null
+            stopScreenSharing()
+
+            stopService(Intent(this, BackGround::class.java))
+            destroyMediaProjection()
             finish()
         }
 
@@ -424,72 +444,8 @@ class CamActivity : AppCompatActivity() {
 //        }
     }
 
-//    private fun prepareRecording() {
-//        val moviesFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
-//        val movieFile = File(moviesFolder, "test.mp4")
-//        mRecorder = MediaRecorder()
-//        mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC)
-//        mRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE)
-//        mRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-//        mRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-//        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-//        mRecorder.setVideoEncodingBitRate(512 * 1000)
-//        mRecorder.setVideoFrameRate(30)
-//        mRecorder.setVideoSize(720, 1200)
-//        mRecorder.setOutputFile(movieFile.path)
-//        try {
-//            mRecorder.prepare()
-//        } catch (e: java.lang.Exception) {
-//            e.printStackTrace()
-//            return
-//        }
-//    }
-//
-//    @RequiresApi(Build.VERSION_CODES.O)
-//    private fun startScreenRecording(mediaProjection: MediaProjection, file: File): Boolean {
-//        mRecorder = MediaRecorder()
-//
-//      //  mRecorder.setAudioSource(MediaRecorder.AudioSource.DEFAULT)
-//        mRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE)
-////        val profile = CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH)
-////        profile.videoFrameHeight = metrics.heightPixels
-////        profile.videoFrameWidth = metrics.widthPixels
-//       // mRecorder.setProfile(profile)
-//        mRecorder.setOutputFile(file)
-//        mRecorder.setVideoSize(720, 1200)
-//
-//        mDisplay = mediaProjection.createVirtualDisplay(
-//            "ScreenRecorder",
-//            710,
-//            1200,
-//            240,
-//            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-//            mRecorder.surface,
-//            null,
-//            null)
-//
-//        try {
-//            mRecorder.prepare()
-//
-////            mRecording = true
-////            showNotification()
-//        } catch (e:Exception) {
-//            e.printStackTrace()
-//            toast(this, e.message.toString())
-//            return false
-//        }
-//
-//        try {
-//            mRecorder.start()
-//        } catch (e:Exception) {
-//            toast(this, e.message.toString())
-//            return false
-//        }
-//        return true
-//    }
-
-    override fun onStop() {
-        super.onStop()
+    override fun onPause() {
+        super.onPause()
         imageProcessor?.run { this.stop() }
     }
 
@@ -519,152 +475,6 @@ class CamActivity : AppCompatActivity() {
     }
 
 
-    inner class BackGround : Service() {
-        override fun onBind(intent: Intent): IBinder? {
-            return null
-        }
 
-        override fun onCreate() {
-            super.onCreate()
-        }
-
-        override fun onDestroy() {
-            super.onDestroy()
-        }
-
-        override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-            val notificationIntent = Intent(this, MainActivity::class.java)
-            val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
-            val notification: Notification = NotificationCompat.Builder(this, "CHANNEL_ID")
-                .setContentTitle("Recording Service")
-                .setContentText("Running")
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentIntent(pendingIntent)
-                .build()
-            startForeground(1, notification)
-            return START_NOT_STICKY
-        }
-    }
-
-
-//    @RequiresApi(Build.VERSION_CODES.O)
-//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-//        super.onActivityResult(requestCode, resultCode, data)
-//        if (requestCode == 101) {
-//            if (resultCode == RESULT_OK) {
-//                if (data != null) {
-//                    mMediaProjection = mMediaProjectionManager.getMediaProjection(resultCode, data)
-////                    startScreenRecording(mMediaProjection, movieFile)
-//                    mDisplay = getVirtualDisplay()
-//                    try {
-//                        mRecorder.start()
-//                    } catch (e:Exception) {
-//                        toast(this, e.message.toString())
-//                    }
-//                }
-//            }
-//        }
-//    }
-
-//    private fun getVirtualDisplay(): VirtualDisplay? {
-////        val screenDensity: Int = mDisplayMetrics.densityDpi
-////        val width: Int = mDisplayMetrics.widthPixels
-////        val height: Int = mDisplayMetrics.heightPixels
-//        return if (mMediaProjection != null)
-//            mMediaProjection!!.createVirtualDisplay(
-//                javaClass.simpleName,
-//                710,
-//                1200,
-//                240,
-//                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-//                mRecorder.surface,
-//                null,
-//                null
-//            ) else return null
-//    }
 
 }
-
-
-//        binding.rotateCameraIconFront.setOnClickListener {
-//            binding.rotateCameraIconBack.visibility = View.VISIBLE
-//            binding.rotateCameraIconFront.visibility = View.GONE
-
-//            cameraSelector = CameraSelector.Builder()
-//                .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-//                .build()
-//
-//          //  cameraProvider?.unbindAll()
-//            cameraProvider?.bindToLifecycle(
-//                this,
-//                cameraSelector,
-//                videoCapture
-//            )
-//
-//           // startCamera(CameraSelector.LENS_FACING_FRONT)
-//        }
-//        binding.rotateCameraIconBack.setOnClickListener {
-//            binding.rotateCameraIconBack.visibility = View.GONE
-//            binding.rotateCameraIconFront.visibility = View.VISIBLE
-//            binding.flashIconOn.visibility = View.GONE
-//            binding.flashIconOff.visibility = View.VISIBLE
-//            flashOn = false
-//
-//            cameraSelector = CameraSelector.Builder()
-//                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-//                .build()
-//
-//           // cameraProvider?.unbindAll()
-//            cameraProvider?.bindToLifecycle(
-//                this,
-//                cameraSelector,
-//                videoCapture
-//            )
-//
-//            //startCamera(CameraSelector.LENS_FACING_BACK)
-//        }
-//
-//        binding.flashIconOn.setOnClickListener {
-//            binding.flashIconOn.visibility = View.GONE
-//            binding.flashIconOff.visibility = View.VISIBLE
-//            flashOn = false
-//            cameraProvider?.bindToLifecycle(
-//                this as LifecycleOwner,
-//                cameraSelector,
-//                preview,
-//                imageAnalysis
-//            )?.cameraControl?.enableTorch(flashOn)
-//        }
-//        binding.flashIconOff.setOnClickListener {
-//            binding.flashIconOn.visibility = View.VISIBLE
-//            binding.flashIconOff.visibility = View.GONE
-//            flashOn = true
-//            cameraProvider?.bindToLifecycle(
-//                this as LifecycleOwner,
-//                cameraSelector,
-//                preview,
-//                imageAnalysis
-//            )?.cameraControl?.enableTorch(flashOn)
-//        }
-
-
-// val inputImage = InputImage.fromMediaImage(mediaImage, rotationDegrees)
-
-// Passing image to mlkit
-//                poseDetector.process(inputImage)
-//                    .addOnSuccessListener { obj ->
-//                        if (obj.allPoseLandmarks.size>0) {
-//                            if (binding.parentLayout.childCount > 3) binding.parentLayout.removeViewAt(3)
-//                            val mView = Draw(this, obj, binding.tvAngle)
-//
-//                            binding.parentLayout.addView(mView)
-//                        } else if (binding.parentLayout.childCount > 3) {
-//                            binding.parentLayout.removeViewAt(3)
-//                            binding.tvAngle.text = ""
-//                        }
-//                        imageProxy.close()
-//                    }.addOnFailureListener {
-//                        Log.d("TAGpose00", "onCreate: ${it.message}")
-//                        toast(applicationContext, it.message.toString())
-//                        imageProxy.close()
-//                    }

@@ -28,7 +28,7 @@ class RecordedVideoListActivity : AppCompatActivity(), RecordedVideoAdapter.OnVi
         setContentView(binding.root)
         recordedVideoFile = ArrayList()
 
-        val path = filesDir.absolutePath.toString()
+        val path = "/storage/emulated/0/MLVideos/" //filesDir.absolutePath.toString()
         val f = File(path)
         val file: Array<File> = f.listFiles()
         for (i in file.indices) {
