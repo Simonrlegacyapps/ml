@@ -79,9 +79,10 @@
         <service
             android:name="com.example.demomlkit.view.CamActivity$Companion$BackGround"
             android:enabled="true"
-            android:exported="true"
-            android:stopWithTask="true"
+            android:exported="false"
             android:foregroundServiceType="mediaProjection" />
+<!--        android:exported="true"-->
+<!--        android:stopWithTask="true"-->
     </application>
 
 </manifest>

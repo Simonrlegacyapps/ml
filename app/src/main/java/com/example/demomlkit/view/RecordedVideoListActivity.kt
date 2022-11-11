@@ -26,18 +26,26 @@ class RecordedVideoListActivity : AppCompatActivity(), RecordedVideoAdapter.OnVi
         super.onCreate(savedInstanceState)
         binding = ActivityRecordedVideoListBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        recordedVideoFile = ArrayList()
-
-        val path = "/storage/emulated/0/MLVideos/" //filesDir.absolutePath.toString()
-        val f = File(path)
-        val file: Array<File> = f.listFiles()
-        for (i in file.indices) {
-            //here is our recorded videos list
-            recordedVideoFile.add(file[i])
-        }
+        getStoredFiles()
         setupRecyclerview()
         binding.ivBackBtn.setOnClickListener {
             finish()
+        }
+    }
+
+    private fun getStoredFiles() {
+        recordedVideoFile = ArrayList()
+        val path = "/storage/emulated/0/MLVideos/" //filesDir.absolutePath.toString()
+        val f = File(path)
+
+        val file: Array<File>? = f.listFiles() as Array<File>?
+        if (file.isNullOrEmpty()) {
+            binding.tvNoVidText.visibility = View.VISIBLE
+            binding.rvVideos.visibility = View.GONE
+        } else {
+            for (i in file.indices) {
+                recordedVideoFile.add(file[i]) //here is our recorded videos list
+            }
         }
     }
 

@@ -2,13 +2,10 @@ package com.example.demomlkit.view
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Notification
-import android.app.PendingIntent
-import android.app.PendingIntent.FLAG_IMMUTABLE
-import android.app.PendingIntent.FLAG_MUTABLE
-import android.app.Service
+import android.app.*
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.MediaRecorder
@@ -18,7 +15,6 @@ import android.media.projection.MediaProjectionManager
 import android.os.*
 import android.util.DisplayMetrics
 import android.util.Log
-import android.util.Size
 import android.util.SparseIntArray
 import android.view.*
 import android.widget.Toast
@@ -26,16 +22,11 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.core.VideoCapture
-import androidx.camera.core.impl.CaptureConfig
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat.Type.systemBars
-import androidx.core.view.WindowInsetsControllerCompat
-import androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
 import androidx.lifecycle.LifecycleOwner
 import com.example.demomlkit.R
 import com.example.demomlkit.databinding.ActivityCamBinding
@@ -46,7 +37,6 @@ import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import java.io.*
-import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.Executors
 
@@ -89,19 +79,53 @@ class CamActivity : AppCompatActivity() {
             }
 
             override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-                val notificationIntent = Intent(this, MainActivity::class.java)
-                val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
+//                val notificationIntent = Intent(this, MainActivity::class.java)
+//                val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
+//
+//                val notification = NotificationCompat.Builder(this, "CHANNEL_ID")
+//                    .setContentTitle("Recording Service")
+//                    .setContentText("Running")
+//                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+//                    .setContentIntent(pendingIntent)
+//                    .build()
+//                startForeground(1, notification)
+//                return START_NOT_STICKY
 
-                val notification = NotificationCompat.Builder(this, "CHANNEL_ID")
-                    .setContentTitle("Recording Service")
-                    .setContentText("Running")
-                    .setSmallIcon(R.drawable.ic_launcher_foreground)
-                    .setContentIntent(pendingIntent)
-                    .build()
-                startForeground(1, notification)
+                val builder = NotificationCompat.Builder(this, "CHANNEL_ID")
+                val nfIntent = Intent(this, CamActivity::class.java)
+
+                val pIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                    PendingIntent.getActivity(this, 0, nfIntent, PendingIntent.FLAG_IMMUTABLE)
+                else PendingIntent.getActivity(this, 0, nfIntent, PendingIntent.FLAG_ONE_SHOT)
+
+                builder.setContentIntent(pIntent)
+                    .setLargeIcon(
+                        BitmapFactory.decodeResource(
+                            this.resources,
+                            R.mipmap.ic_launcher
+                        )
+                    ).setSmallIcon(R.mipmap.ic_launcher)
+                    .setContentText("is running......")
+                    .setWhen(System.currentTimeMillis())
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) builder.setChannelId("notification_id")
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+                    val channel = NotificationChannel(
+                        "notification_id",
+                        "notification_name",
+                        NotificationManager.IMPORTANCE_LOW
+                    )
+                    notificationManager.createNotificationChannel(channel)
+                }
+                val notification = builder.build()
+                notification.defaults = Notification.DEFAULT_SOUND
+                startForeground(110, notification)
                 return START_NOT_STICKY
             }
         }
+
         ///
         private const val TAG = "MainActivity"
         private const val REQUEST_CODE = 1000
@@ -162,11 +186,11 @@ class CamActivity : AppCompatActivity() {
         category = intent.extras?.getString("category")!!
 
         // screen record
-        screenShare()
+        startRecordingScreen()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun screenShare() {
+    private fun startRecordingScreen() {
         startForegroundService(Intent(this, BackGround::class.java))
         val metrics = DisplayMetrics()
         windowManager.defaultDisplay.getMetrics(metrics)
@@ -174,7 +198,8 @@ class CamActivity : AppCompatActivity() {
         mProjectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
 
         initRecorder()
-        Handler().postDelayed({
+
+        Handler(Looper.getMainLooper()).postDelayed({
             shareScreen()
         }, 3000)
     }
@@ -185,7 +210,7 @@ class CamActivity : AppCompatActivity() {
             return
         }
         mVirtualDisplay = createVirtualDisplay()
-        mMediaRecorder!!.start()
+       // mMediaRecorder!!.start()
     }
 
     private fun createVirtualDisplay(): VirtualDisplay {
@@ -198,7 +223,9 @@ class CamActivity : AppCompatActivity() {
     }
 
     private fun initRecorder() {
-        mMediaRecorder = MediaRecorder()
+        mMediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(this)
+        else MediaRecorder()
+
         try {
             val file = File("/storage/emulated/0/MLVideos/")
             if (!file.exists()) file.mkdirs()
@@ -215,16 +242,21 @@ class CamActivity : AppCompatActivity() {
             mMediaRecorder!!.setAudioSource(MediaRecorder.AudioSource.MIC)
             mMediaRecorder!!.setVideoSource(MediaRecorder.VideoSource.SURFACE)
             mMediaRecorder!!.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            mMediaRecorder!!.setVideoSize(DISPLAY_WIDTH, 1125)
-            mMediaRecorder!!.setVideoEncoder(MediaRecorder.VideoEncoder.H264)
             mMediaRecorder!!.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-//            mMediaRecorder!!.setVideoEncodingBitRate(512 * 1000)
-//            mMediaRecorder!!.setVideoFrameRate(30)
-//            mMediaRecorder!!.setVideoEncodingBitRate(3000000)
-            val rotation = windowManager.defaultDisplay.rotation
-            val orientation = ORIENTATIONS.get(rotation + 90)
-            mMediaRecorder!!.setOrientationHint(orientation)
+            mMediaRecorder!!.setVideoEncoder(MediaRecorder.VideoEncoder.H264)
+            mMediaRecorder!!.setVideoSize(DISPLAY_WIDTH, 1125)
+            mMediaRecorder!!.setVideoFrameRate(30)
             mMediaRecorder!!.setOutputFile(videoFile)
+            mMediaRecorder!!.setVideoEncodingBitRate(512 * 1000)
+
+//            mMediaRecorder!!.setVideoEncodingBitRate(3000000)
+
+            val rotation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) display?.rotation
+            else windowManager.defaultDisplay.rotation
+
+            val orientation = ORIENTATIONS.get(rotation?.plus(90) ?: 0)
+            mMediaRecorder!!.setOrientationHint(orientation)
+
             mMediaRecorder!!.prepare()
         } catch (e: IOException) {
             e.printStackTrace()
@@ -252,7 +284,6 @@ class CamActivity : AppCompatActivity() {
             Log.i("External", "-> uri=$uri")
         }
     }
-
 
     private fun destroyMediaProjection() {
         if (mMediaProjection != null) {
@@ -432,16 +463,6 @@ class CamActivity : AppCompatActivity() {
         if (isLensBack == "yes") startCamera(CameraSelector.LENS_FACING_BACK)
         else startCamera(CameraSelector.LENS_FACING_FRONT)
         binding.stopRecordingButton.visibility = View.VISIBLE
-
-//        prepareRecording()
-//        mMediaProjectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-//        startActivityForResult(mMediaProjectionManager.createScreenCaptureIntent(), 101)
-//        mDisplay = getVirtualDisplay()
-//        try {
-//            mRecorder.start()
-//        } catch (e:Exception) {
-//            toast(this, e.message.toString())
-//        }
     }
 
     override fun onPause() {
@@ -453,14 +474,19 @@ class CamActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != REQUEST_CODE) {
             Log.e(TAG, "Unknown request code: $requestCode")
-            return
+            finish()
         }
         if (resultCode != RESULT_OK) {
             Toast.makeText(
                 this,
-                "Screen Cast Permission Denied", Toast.LENGTH_SHORT
+                "Screen Record Permission Denied", Toast.LENGTH_SHORT
             ).show()
-            return
+
+            Toast.makeText(
+                this,
+                "Please allow recording, so that ML can record video properly", Toast.LENGTH_LONG
+            ).show()
+            finish()
         }
         mMediaProjectionCallback = MediaProjectionCallback()
         mMediaProjection = mProjectionManager!!.getMediaProjection(resultCode, data!!)
