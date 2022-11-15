@@ -119,8 +119,8 @@ class VideoActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListen
 //            }
 //            binding.parentLayout.layoutParams = lp
 
-            binding.videoView.scaleX = 1.25f
-            binding.videoView.scaleY = 1.156f
+           binding.videoView.scaleX = 1.1f
+//            binding.videoView.scaleY = 1.156f
             binding.videoView.start()
         }
 

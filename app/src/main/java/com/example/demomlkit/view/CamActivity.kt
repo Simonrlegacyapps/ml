@@ -5,9 +5,11 @@ import android.annotation.SuppressLint
 import android.app.*
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Resources
 import android.graphics.BitmapFactory
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
+import android.media.CamcorderProfile
 import android.media.MediaRecorder
 import android.media.MediaScannerConnection
 import android.media.projection.MediaProjection
@@ -108,13 +110,14 @@ class CamActivity : AppCompatActivity() {
                     .setContentText("is running......")
                     .setWhen(System.currentTimeMillis())
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) builder.setChannelId("notification_id")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) builder.setChannelId("CHANNEL_ID")
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+                    val notificationManager =
+                        getSystemService(NOTIFICATION_SERVICE) as NotificationManager
                     val channel = NotificationChannel(
-                        "notification_id",
-                        "notification_name",
+                        "CHANNEL_ID",
+                        "CHANNEL_ID",
                         NotificationManager.IMPORTANCE_LOW
                     )
                     notificationManager.createNotificationChannel(channel)
@@ -124,6 +127,10 @@ class CamActivity : AppCompatActivity() {
                 startForeground(110, notification)
                 return START_NOT_STICKY
             }
+
+//            override fun stopService(name: Intent?): Boolean {
+//                return super.stopService(name)
+//            }
         }
 
         ///
@@ -175,18 +182,26 @@ class CamActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityCamBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        hideStatusBar()
+        flashOn = intent.extras?.getString("isFlash")!!
+        isLensBack = intent.extras?.getString("isLensBack")!!
+        category = intent.extras?.getString("category")!!
+
         checkAllPermissions()
         initListeners()
 
         cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProvider = cameraProviderFuture.get()
-        flashOn = intent.extras?.getString("isFlash")!!
-        isLensBack = intent.extras?.getString("isLensBack")!!
-        category = intent.extras?.getString("category")!!
 
         // screen record
         startRecordingScreen()
+    }
+
+    private fun hideStatusBar() {
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN
+        )
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -198,81 +213,87 @@ class CamActivity : AppCompatActivity() {
         mProjectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
 
         initRecorder()
-
-        Handler(Looper.getMainLooper()).postDelayed({
-            shareScreen()
-        }, 3000)
-    }
-
-    private fun shareScreen() {
-        if (mMediaProjection == null) {
-            startActivityForResult(mProjectionManager!!.createScreenCaptureIntent(), REQUEST_CODE)
-            return
-        }
-        mVirtualDisplay = createVirtualDisplay()
-       // mMediaRecorder!!.start()
     }
 
     private fun createVirtualDisplay(): VirtualDisplay {
         return mMediaProjection!!.createVirtualDisplay(
-            "MainActivity",
-            DISPLAY_WIDTH, DISPLAY_HEIGHT, mScreenDensity,
+            "CamActivity",
+            DISPLAY_WIDTH,
+            DISPLAY_HEIGHT,
+//            Resources.getSystem().displayMetrics.widthPixels,
+//            Resources.getSystem().displayMetrics.heightPixels,
+            mScreenDensity,
             DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
             mMediaRecorder!!.surface, null, null
         )
     }
 
     private fun initRecorder() {
-        mMediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(this)
-        else MediaRecorder()
-
+        mMediaRecorder = MediaRecorder()
+        val file = File(filesDir.absolutePath, "${category}_Video_${System.currentTimeMillis()}.mp4")
+        videoFile = file.absolutePath
         try {
-            val file = File("/storage/emulated/0/MLVideos/")
-            if (!file.exists()) file.mkdirs()
-
-            videoFile = "/storage/emulated/0/MLVideos/$category-" + System.currentTimeMillis() + ".mp4"
-
-            val file1 = File(videoFile)
-
-            val fileWriter = FileWriter(file1)
-            fileWriter.append("")
-            fileWriter.flush()
-            fileWriter.close()
-
-            mMediaRecorder!!.setAudioSource(MediaRecorder.AudioSource.MIC)
+            mMediaRecorder!!.reset()
+            mMediaRecorder!!.setAudioSource(MediaRecorder.AudioSource.CAMCORDER)
             mMediaRecorder!!.setVideoSource(MediaRecorder.VideoSource.SURFACE)
+         //   mMediaRecorder!!.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH))
             mMediaRecorder!!.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             mMediaRecorder!!.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-            mMediaRecorder!!.setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-            mMediaRecorder!!.setVideoSize(DISPLAY_WIDTH, 1125)
+            mMediaRecorder!!.setVideoEncoder(MediaRecorder.VideoEncoder.H264)  //MPEG_4_SP
+
+//            mMediaRecorder!!.setVideoSize(
+//                Resources.getSystem().displayMetrics.widthPixels,
+//                (Resources.getSystem().displayMetrics.heightPixels) - (Resources.getSystem().displayMetrics.heightPixels * 12 / 100)
+//            )
+
+            mMediaRecorder!!.setVideoSize(DISPLAY_WIDTH, DISPLAY_HEIGHT)
+
             mMediaRecorder!!.setVideoFrameRate(30)
-            mMediaRecorder!!.setOutputFile(videoFile)
             mMediaRecorder!!.setVideoEncodingBitRate(512 * 1000)
 
-//            mMediaRecorder!!.setVideoEncodingBitRate(3000000)
+            //mMediaRecorder!!.setVideoEncodingBitRate(3000000)
+
+            mMediaRecorder!!.setOutputFile(videoFile)
 
             val rotation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) display?.rotation
             else windowManager.defaultDisplay.rotation
-
             val orientation = ORIENTATIONS.get(rotation?.plus(90) ?: 0)
             mMediaRecorder!!.setOrientationHint(orientation)
-
             mMediaRecorder!!.prepare()
+
+            if (mMediaProjection == null) {
+                startActivityForResult(mProjectionManager!!.createScreenCaptureIntent(), REQUEST_CODE)
+                return
+            } else {
+                mVirtualDisplay = createVirtualDisplay()
+                mMediaRecorder!!.start()
+            }
         } catch (e: IOException) {
             e.printStackTrace()
+            toast(this, e.message.toString())
+        }
+
+        mMediaRecorder!!.setOnErrorListener { mr, what, extra ->
+            Log.d("TAG-mr-error", "initRecorder: ${mr}, ${what}// ${extra}")
+        }
+
+        mMediaRecorder!!.setOnInfoListener { mr, what, extra ->
+            Log.d("TAG-mr-info", "initRecorder: ${mr}, ${what}// ${extra}")
         }
     }
 
     private inner class MediaProjectionCallback : MediaProjection.Callback() {
         override fun onStop() {
-            mMediaRecorder!!.stop()
-            mMediaRecorder!!.reset()
-            mMediaProjection = null
             stopScreenSharing()
         }
     }
 
     private fun stopScreenSharing() {
+        mMediaRecorder!!.stop()
+        mMediaRecorder!!.reset()
+        mMediaRecorder!!.release()
+        mMediaProjection = null
+
         if (mVirtualDisplay == null) return
         mVirtualDisplay!!.release()
         destroyMediaProjection()
@@ -311,13 +332,7 @@ class CamActivity : AppCompatActivity() {
     private fun initListeners() {
         binding.stopRecordingButton.setOnClickListener {
             //   videoCapture.stopRecording()
-            mMediaRecorder!!.stop()
-            mMediaRecorder!!.reset()
-            mMediaProjection = null
-            stopScreenSharing()
-
             stopService(Intent(this, BackGround::class.java))
-            destroyMediaProjection()
             finish()
         }
 
@@ -399,7 +414,8 @@ class CamActivity : AppCompatActivity() {
                     imageProcessor?.processImageProxy(imageProxy, binding.graphicOverlay)
                 } catch (e: MlKitException) {
                     Log.e("TAG", "Failed to process image. Error: " + e.localizedMessage)
-                    Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(applicationContext, e.localizedMessage, Toast.LENGTH_SHORT)
+                        .show()
                 }
             }
         }
@@ -462,6 +478,7 @@ class CamActivity : AppCompatActivity() {
         super.onResume()
         if (isLensBack == "yes") startCamera(CameraSelector.LENS_FACING_BACK)
         else startCamera(CameraSelector.LENS_FACING_FRONT)
+
         binding.stopRecordingButton.visibility = View.VISIBLE
     }
 
@@ -492,15 +509,21 @@ class CamActivity : AppCompatActivity() {
         mMediaProjection = mProjectionManager!!.getMediaProjection(resultCode, data!!)
         mMediaProjection!!.registerCallback(mMediaProjectionCallback, null)
 
-        mVirtualDisplay = mMediaProjection!!.createVirtualDisplay(
-            "MainActivity", DISPLAY_WIDTH, DISPLAY_HEIGHT, mScreenDensity,
-            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, mMediaRecorder!!.surface, null, null
-        )
-
+        try {
+            mVirtualDisplay = mMediaProjection!!.createVirtualDisplay(
+                "CamActivity",
+                DISPLAY_WIDTH,
+                DISPLAY_HEIGHT,
+                mScreenDensity,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                mMediaRecorder!!.surface,
+                null,
+                null
+            )
+        } catch (e: Exception) {
+            toast(this, e.message.toString())
+        }
         mMediaRecorder!!.start()
     }
-
-
-
 
 }
