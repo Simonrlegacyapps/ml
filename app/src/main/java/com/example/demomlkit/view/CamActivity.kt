@@ -82,13 +82,17 @@ class CamActivity : AppCompatActivity() {
 
             override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
 //                val notificationIntent = Intent(this, MainActivity::class.java)
-//                val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
+//
+//                val pIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+//                    PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE)
+//                else PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_ONE_SHOT)
+//
 //
 //                val notification = NotificationCompat.Builder(this, "CHANNEL_ID")
-//                    .setContentTitle("Recording Service")
-//                    .setContentText("Running")
+//                    .setContentTitle("MLKit Recording")
+//                    .setContentText("Running...")
 //                    .setSmallIcon(R.drawable.ic_launcher_foreground)
-//                    .setContentIntent(pendingIntent)
+//                    .setContentIntent(pIntent)
 //                    .build()
 //                startForeground(1, notification)
 //                return START_NOT_STICKY
@@ -134,10 +138,10 @@ class CamActivity : AppCompatActivity() {
         }
 
         ///
-        private const val TAG = "MainActivity"
+        private const val TAG = "MainActivity" //720//1412
         private const val REQUEST_CODE = 1000
         private const val DISPLAY_WIDTH = 720
-        private const val DISPLAY_HEIGHT = 1280
+        private const val DISPLAY_HEIGHT = 1400
         private val ORIENTATIONS = SparseIntArray()
 
         init {
@@ -183,6 +187,7 @@ class CamActivity : AppCompatActivity() {
         binding = ActivityCamBinding.inflate(layoutInflater)
         setContentView(binding.root)
         hideStatusBar()
+
         flashOn = intent.extras?.getString("isFlash")!!
         isLensBack = intent.extras?.getString("isLensBack")!!
         category = intent.extras?.getString("category")!!
@@ -207,62 +212,72 @@ class CamActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     private fun startRecordingScreen() {
         startForegroundService(Intent(this, BackGround::class.java))
-        val metrics = DisplayMetrics()
-        windowManager.defaultDisplay.getMetrics(metrics)
-        mScreenDensity = metrics.densityDpi
+        mScreenDensity = Resources.getSystem().displayMetrics.densityDpi
         mProjectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-
         initRecorder()
     }
 
-    private fun createVirtualDisplay(): VirtualDisplay {
-        return mMediaProjection!!.createVirtualDisplay(
-            "CamActivity",
-            DISPLAY_WIDTH,
-            DISPLAY_HEIGHT,
-//            Resources.getSystem().displayMetrics.widthPixels,
-//            Resources.getSystem().displayMetrics.heightPixels,
-            mScreenDensity,
-            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-            mMediaRecorder!!.surface, null, null
-        )
-    }
-
     private fun initRecorder() {
-        mMediaRecorder = MediaRecorder()
-        val file = File(filesDir.absolutePath, "${category}_Video_${System.currentTimeMillis()}.mp4")
+        mMediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(this)
+        else MediaRecorder()
+        val file =
+            File(filesDir.absolutePath, "${category}_Video_${System.currentTimeMillis()}.mp4")
         videoFile = file.absolutePath
+
+//        val file = File("/storage/emulated/0/MLVideos/")
+//        if (!file.exists()) file.mkdirs()
+//        videoFile = "/storage/emulated/0/MLVideos/$category-" + System.currentTimeMillis() + ".mp4"
+//        val file1 = File(videoFile)
+//        val fileWriter = FileWriter(file1)
+//        fileWriter.append("")
+//        fileWriter.flush()
+//        fileWriter.close()
+
         try {
             mMediaRecorder!!.reset()
-            mMediaRecorder!!.setAudioSource(MediaRecorder.AudioSource.CAMCORDER)
+            mMediaRecorder!!.setAudioSource(MediaRecorder.AudioSource.MIC)
             mMediaRecorder!!.setVideoSource(MediaRecorder.VideoSource.SURFACE)
-         //   mMediaRecorder!!.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH))
             mMediaRecorder!!.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             mMediaRecorder!!.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
             mMediaRecorder!!.setVideoEncoder(MediaRecorder.VideoEncoder.H264)  //MPEG_4_SP
 
+            Log.d(
+                "TAGw*h",
+                "w*h: ${Resources.getSystem().displayMetrics.widthPixels}//${Resources.getSystem().displayMetrics.heightPixels}///${(Resources.getSystem().displayMetrics.heightPixels) - (Resources.getSystem().displayMetrics.heightPixels * 12 / 100)}"
+            )
+
+            mMediaRecorder!!.setVideoSize(DISPLAY_WIDTH, 1220)
+
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // v11/ v12
+//                mMediaRecorder!!.setVideoSize(DISPLAY_WIDTH, 1200)
+//            } else { // ...v10
+//                mMediaRecorder!!.setVideoSize(DISPLAY_WIDTH, 1200)
+//            }
+
 //            mMediaRecorder!!.setVideoSize(
 //                Resources.getSystem().displayMetrics.widthPixels,
-//                (Resources.getSystem().displayMetrics.heightPixels) - (Resources.getSystem().displayMetrics.heightPixels * 12 / 100)
-//            )
+//                (Resources.getSystem().displayMetrics.heightPixels) - (Resources.getSystem().displayMetrics.heightPixels * 12 / 100))
 
-            mMediaRecorder!!.setVideoSize(DISPLAY_WIDTH, DISPLAY_HEIGHT)
 
-            mMediaRecorder!!.setVideoFrameRate(30)
-            mMediaRecorder!!.setVideoEncodingBitRate(512 * 1000)
+//            mMediaRecorder!!.setVideoFrameRate(30)
+//            mMediaRecorder!!.setVideoEncodingBitRate(512 * 1000)
 
             //mMediaRecorder!!.setVideoEncodingBitRate(3000000)
 
             mMediaRecorder!!.setOutputFile(videoFile)
 
-            val rotation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) display?.rotation
-            else windowManager.defaultDisplay.rotation
+            val rotation =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) display?.rotation  //android 9/p
+                else windowManager.defaultDisplay.rotation
             val orientation = ORIENTATIONS.get(rotation?.plus(90) ?: 0)
             mMediaRecorder!!.setOrientationHint(orientation)
             mMediaRecorder!!.prepare()
 
             if (mMediaProjection == null) {
-                startActivityForResult(mProjectionManager!!.createScreenCaptureIntent(), REQUEST_CODE)
+                startActivityForResult(
+                    mProjectionManager!!.createScreenCaptureIntent(),
+                    REQUEST_CODE
+                )
                 return
             } else {
                 mVirtualDisplay = createVirtualDisplay()
@@ -332,6 +347,8 @@ class CamActivity : AppCompatActivity() {
     private fun initListeners() {
         binding.stopRecordingButton.setOnClickListener {
             //   videoCapture.stopRecording()
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q)   // <v10
+                stopScreenSharing()
             stopService(Intent(this, BackGround::class.java))
             finish()
         }
@@ -524,6 +541,17 @@ class CamActivity : AppCompatActivity() {
             toast(this, e.message.toString())
         }
         mMediaRecorder!!.start()
+    }
+
+    private fun createVirtualDisplay(): VirtualDisplay {
+        return mMediaProjection!!.createVirtualDisplay(
+            "CamActivity",
+            DISPLAY_WIDTH,
+            DISPLAY_HEIGHT,
+            mScreenDensity,
+            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+            mMediaRecorder!!.surface, null, null
+        )
     }
 
 }

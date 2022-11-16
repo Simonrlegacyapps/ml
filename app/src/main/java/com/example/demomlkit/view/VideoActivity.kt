@@ -92,34 +92,7 @@ class VideoActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListen
         binding.videoView.requestFocus()
 
         binding.videoView.setOnPreparedListener { mp ->
-//            val videoRatio = mp.videoWidth / mp.videoHeight.toFloat()
-//            val screenRatio = binding.videoView.width / binding.videoView.height.toFloat()
-//            val scaleX = videoRatio / screenRatio
-//            if (scaleX >= 1f)
-//                binding.videoView.scaleX = scaleX
-//            else
-//                binding.videoView.scaleY = 1f / scaleX
-
-
-            // so it fits on the screen
-//            val videoWidth = binding.videoView.width //videoWidth
-//            val videoHeight = binding.videoView.height //videoHeight
-//            val videoProportion = videoWidth.toFloat() / videoHeight.toFloat()
-//            val screenWidth = windowManager.defaultDisplay.width
-//            val screenHeight = windowManager.defaultDisplay.height
-//            val screenProportion = screenWidth.toFloat() / screenHeight.toFloat()
-//            val lp = binding.parentLayout.layoutParams
-//
-//            if (videoProportion > screenProportion) {
-//                lp.width = screenWidth
-//                lp.height = (screenWidth.toFloat() / videoProportion).toInt()
-//            } else {
-//                lp.width = (videoProportion * screenHeight.toFloat()).toInt()
-//                lp.height = screenHeight
-//            }
-//            binding.parentLayout.layoutParams = lp
-
-           binding.videoView.scaleX = 1.1f
+           binding.videoView.scaleX = 1.05f
 //            binding.videoView.scaleY = 1.156f
             binding.videoView.start()
         }
@@ -285,3 +258,33 @@ class VideoActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListen
 //        mPlayTask?.requestStop()
 //    }
 }
+
+
+
+// scaleX/// scaleY
+//            val videoRatio = mp.videoWidth / mp.videoHeight.toFloat()
+//            val screenRatio = binding.videoView.width / binding.videoView.height.toFloat()
+//            val scaleX = videoRatio / screenRatio
+//            if (scaleX >= 1f)
+//                binding.videoView.scaleX = scaleX
+//            else
+//                binding.videoView.scaleY = 1f / scaleX
+
+
+// so it fits on the screen
+//            val videoWidth = binding.videoView.width //videoWidth
+//            val videoHeight = binding.videoView.height //videoHeight
+//            val videoProportion = videoWidth.toFloat() / videoHeight.toFloat()
+//            val screenWidth = windowManager.defaultDisplay.width
+//            val screenHeight = windowManager.defaultDisplay.height
+//            val screenProportion = screenWidth.toFloat() / screenHeight.toFloat()
+//            val lp = binding.parentLayout.layoutParams
+//
+//            if (videoProportion > screenProportion) {
+//                lp.width = screenWidth
+//                lp.height = (screenWidth.toFloat() / videoProportion).toInt()
+//            } else {
+//                lp.width = (videoProportion * screenHeight.toFloat()).toInt()
+//                lp.height = screenHeight
+//            }
+//            binding.parentLayout.layoutParams = lp

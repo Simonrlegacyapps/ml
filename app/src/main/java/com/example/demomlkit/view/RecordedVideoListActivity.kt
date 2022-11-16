@@ -36,16 +36,8 @@ class RecordedVideoListActivity : AppCompatActivity(), RecordedVideoAdapter.OnVi
 
     private fun getStoredFiles() {
         recordedVideoFile = ArrayList()
-        val path = filesDir.absolutePath.toString() //"/storage/emulated/0/MLVideos/"  //filesDir.absolutePath.toString() //getExternalFilesDir(Environment.DIRECTORY_DCIM)?.absolutePath
-        //val path = File(getExternalFilesDir(Environment.DIRECTORY_RECORDINGS), "MLKIT").absolutePath.toString()  //"/storage/emulated/0/MLVideos/"
-
-//        val path = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-//            File(getExternalFilesDir(Environment.DIRECTORY_RECORDINGS), "MLKIT_VID").absolutePath
-//         else
-//            "/storage/emulated/0/MLVideos/"
-
-
-        val f = File(path)
+        //val path = "/storage/emulated/0/MLVideos/"
+        val f = File(filesDir.absolutePath.toString())
 
         val file: Array<File>? = f.listFiles() as Array<File>?
         if (file.isNullOrEmpty()) {
