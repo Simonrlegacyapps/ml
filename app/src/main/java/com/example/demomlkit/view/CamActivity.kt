@@ -42,7 +42,6 @@ import java.io.*
 import java.util.*
 import java.util.concurrent.Executors
 
-
 class CamActivity : AppCompatActivity() {
     lateinit var binding: ActivityCamBinding
     private lateinit var poseDetector: PoseDetector
@@ -54,8 +53,7 @@ class CamActivity : AppCompatActivity() {
     private lateinit var isLensBack: String
     private lateinit var category: String
     private var imageProcessor: VisionImageProcessor? = null
-    private lateinit var videoCapture: VideoCapture
-
+//    private lateinit var videoCapture: VideoCapture
 
     //////
     private var mScreenDensity = 0
@@ -137,7 +135,6 @@ class CamActivity : AppCompatActivity() {
 //            }
         }
 
-        ///
         private const val TAG = "MainActivity" //720//1412
         private const val REQUEST_CODE = 1000
         private const val DISPLAY_WIDTH = 720
@@ -151,7 +148,6 @@ class CamActivity : AppCompatActivity() {
             ORIENTATIONS.append(Surface.ROTATION_270, 180)
         }
 
-        ////
         private const val REQUEST_CODE_PERMISSIONS = 10
         private val REQUIRED_PERMISSIONS =
             mutableListOf(
@@ -186,7 +182,7 @@ class CamActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityCamBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        hideStatusBar()
+        hideStatusBar(this)
 
         flashOn = intent.extras?.getString("isFlash")!!
         isLensBack = intent.extras?.getString("isLensBack")!!
@@ -200,13 +196,6 @@ class CamActivity : AppCompatActivity() {
 
         // screen record
         startRecordingScreen()
-    }
-
-    private fun hideStatusBar() {
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_FULLSCREEN,
-            WindowManager.LayoutParams.FLAG_FULLSCREEN
-        )
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -224,45 +213,20 @@ class CamActivity : AppCompatActivity() {
             File(filesDir.absolutePath, "${category}_Video_${System.currentTimeMillis()}.mp4")
         videoFile = file.absolutePath
 
-//        val file = File("/storage/emulated/0/MLVideos/")
-//        if (!file.exists()) file.mkdirs()
-//        videoFile = "/storage/emulated/0/MLVideos/$category-" + System.currentTimeMillis() + ".mp4"
-//        val file1 = File(videoFile)
-//        val fileWriter = FileWriter(file1)
-//        fileWriter.append("")
-//        fileWriter.flush()
-//        fileWriter.close()
-
         try {
             mMediaRecorder!!.reset()
             mMediaRecorder!!.setAudioSource(MediaRecorder.AudioSource.MIC)
             mMediaRecorder!!.setVideoSource(MediaRecorder.VideoSource.SURFACE)
             mMediaRecorder!!.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             mMediaRecorder!!.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-            mMediaRecorder!!.setVideoEncoder(MediaRecorder.VideoEncoder.H264)  //MPEG_4_SP
-
-            Log.d(
-                "TAGw*h",
-                "w*h: ${Resources.getSystem().displayMetrics.widthPixels}//${Resources.getSystem().displayMetrics.heightPixels}///${(Resources.getSystem().displayMetrics.heightPixels) - (Resources.getSystem().displayMetrics.heightPixels * 12 / 100)}"
-            )
-
+            mMediaRecorder!!.setVideoEncodingBitRate(8000000)
+            mMediaRecorder!!.setVideoEncoder(MediaRecorder.VideoEncoder.H264) //VP8 //MPEG_4_SP
+            mMediaRecorder!!.setVideoFrameRate(45)
             mMediaRecorder!!.setVideoSize(DISPLAY_WIDTH, 1220)
-
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // v11/ v12
-//                mMediaRecorder!!.setVideoSize(DISPLAY_WIDTH, 1200)
-//            } else { // ...v10
-//                mMediaRecorder!!.setVideoSize(DISPLAY_WIDTH, 1200)
-//            }
 
 //            mMediaRecorder!!.setVideoSize(
 //                Resources.getSystem().displayMetrics.widthPixels,
 //                (Resources.getSystem().displayMetrics.heightPixels) - (Resources.getSystem().displayMetrics.heightPixels * 12 / 100))
-
-
-//            mMediaRecorder!!.setVideoFrameRate(30)
-//            mMediaRecorder!!.setVideoEncodingBitRate(512 * 1000)
-
-            //mMediaRecorder!!.setVideoEncodingBitRate(3000000)
 
             mMediaRecorder!!.setOutputFile(videoFile)
 
@@ -287,19 +251,11 @@ class CamActivity : AppCompatActivity() {
             e.printStackTrace()
             toast(this, e.message.toString())
         }
-
-        mMediaRecorder!!.setOnErrorListener { mr, what, extra ->
-            Log.d("TAG-mr-error", "initRecorder: ${mr}, ${what}// ${extra}")
-        }
-
-        mMediaRecorder!!.setOnInfoListener { mr, what, extra ->
-            Log.d("TAG-mr-info", "initRecorder: ${mr}, ${what}// ${extra}")
-        }
     }
 
     private inner class MediaProjectionCallback : MediaProjection.Callback() {
         override fun onStop() {
-            stopScreenSharing()
+            //destroyMediaProjection()
         }
     }
 
@@ -316,8 +272,7 @@ class CamActivity : AppCompatActivity() {
         MediaScannerConnection.scanFile(
             this, arrayOf(videoFile), null
         ) { path, uri ->
-            Log.i("External", "scanned$path:")
-            Log.i("External", "-> uri=$uri")
+            Log.i("External", "scanned$path:${uri}")
         }
     }
 
@@ -347,8 +302,8 @@ class CamActivity : AppCompatActivity() {
     private fun initListeners() {
         binding.stopRecordingButton.setOnClickListener {
             //   videoCapture.stopRecording()
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q)   // <v10
-                stopScreenSharing()
+            //if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q)   // <v10
+            stopScreenSharing()
             stopService(Intent(this, BackGround::class.java))
             finish()
         }
@@ -499,8 +454,8 @@ class CamActivity : AppCompatActivity() {
         binding.stopRecordingButton.visibility = View.VISIBLE
     }
 
-    override fun onPause() {
-        super.onPause()
+    override fun onStop() {
+        super.onStop()
         imageProcessor?.run { this.stop() }
     }
 
@@ -511,15 +466,8 @@ class CamActivity : AppCompatActivity() {
             finish()
         }
         if (resultCode != RESULT_OK) {
-            Toast.makeText(
-                this,
-                "Screen Record Permission Denied", Toast.LENGTH_SHORT
-            ).show()
-
-            Toast.makeText(
-                this,
-                "Please allow recording, so that ML can record video properly", Toast.LENGTH_LONG
-            ).show()
+            toast(this, "Screen Record Permission Denied")
+            toast(this, "Please allow recording, so that ML can record video properly")
             finish()
         }
         mMediaProjectionCallback = MediaProjectionCallback()
@@ -533,9 +481,7 @@ class CamActivity : AppCompatActivity() {
                 DISPLAY_HEIGHT,
                 mScreenDensity,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                mMediaRecorder!!.surface,
-                null,
-                null
+                mMediaRecorder!!.surface, null, null
             )
         } catch (e: Exception) {
             toast(this, e.message.toString())
@@ -555,3 +501,13 @@ class CamActivity : AppCompatActivity() {
     }
 
 }
+
+
+//        val file = File("/storage/emulated/0/MLVideos/")
+//        if (!file.exists()) file.mkdirs()
+//        videoFile = "/storage/emulated/0/MLVideos/$category-" + System.currentTimeMillis() + ".mp4"
+//        val file1 = File(videoFile)
+//        val fileWriter = FileWriter(file1)
+//        fileWriter.append("")
+//        fileWriter.flush()
+//        fileWriter.close()

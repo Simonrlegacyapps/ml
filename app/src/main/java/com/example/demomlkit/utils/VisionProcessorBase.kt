@@ -12,7 +12,6 @@ import androidx.annotation.Nullable
 import androidx.annotation.RequiresApi
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageProxy
-import androidx.work.impl.utils.PreferenceUtils
 import com.google.android.gms.tasks.*
 import com.google.mlkit.vision.common.InputImage
 import java.nio.ByteBuffer
@@ -58,7 +57,7 @@ abstract class VisionProcessorBase<T> protected constructor(context: Context) : 
         )
     }
 
-    // code for processing single still image
+    // processing single still image
     override fun processBitmap(bitmap: Bitmap?, graphicOverlay: GraphicOverlay) {
         bitmap?.let { bit ->
             requestDetectInImage(
@@ -70,7 +69,7 @@ abstract class VisionProcessorBase<T> protected constructor(context: Context) : 
         }
     }
 
-    //Code for processing live preview frame from CameraX API
+    //processing live preview frame from CameraX
     @RequiresApi(VERSION_CODES.KITKAT)
     @ExperimentalGetImage
     override fun processImageProxy(image: ImageProxy?, graphicOverlay: GraphicOverlay) {
@@ -80,9 +79,7 @@ abstract class VisionProcessorBase<T> protected constructor(context: Context) : 
                 im.close()
                 return
             }
-
             bitmap = getBitmap(im)
-
             im.image?.let { InputImage.fromMediaImage(it, image.imageInfo.rotationDegrees) }?.let {
                 requestDetectInImage(
                     it,
@@ -101,19 +98,19 @@ abstract class VisionProcessorBase<T> protected constructor(context: Context) : 
         @Nullable originalCameraImage: Bitmap?,
         shouldShowFps: Boolean
     ): Task<T> {
-  //      val startMs = SystemClock.elapsedRealtime()
+        val startMs = SystemClock.elapsedRealtime()
         return detectInImage(image)
             .addOnSuccessListener(executor) { results: T ->
                 /**Uncomment this code block below*/
-//                val currentLatencyMs : Long = SystemClock.elapsedRealtime() - startMs
-//                numRuns++
-//                frameProcessedInOneSecondInterval++
-//                totalRunMs += currentLatencyMs
-//                maxRunMs = Math.max(currentLatencyMs, maxRunMs)
-//                minRunMs = Math.min(currentLatencyMs, minRunMs)
+                val currentLatencyMs : Long = SystemClock.elapsedRealtime() - startMs
+                numRuns++
+                frameProcessedInOneSecondInterval++
+                totalRunMs += currentLatencyMs
+                maxRunMs = Math.max(currentLatencyMs, maxRunMs)
+                minRunMs = Math.min(currentLatencyMs, minRunMs)
 
-                // Only log inference info once, per second. When frameProcessedInOneSecondInterval is
-                // equal to 1, it means this is the first frame processed during the current second.
+//                 Only log inference info once, per second. When frameProcessedInOneSecondInterval is
+//                 equal to 1, it means this is the first frame processed during the current second.
 //                if (frameProcessedInOneSecondInterval == 1) {
 //                    val mi = ActivityManager.MemoryInfo()
 //                    activityManager.getMemoryInfo(mi)
@@ -124,13 +121,13 @@ abstract class VisionProcessorBase<T> protected constructor(context: Context) : 
                 if (originalCameraImage != null)
                     graphicOverlay.add(CameraImageGraphic(graphicOverlay, originalCameraImage))
 
-//                graphicOverlay.add(
-//                    InferenceInfoGraphic(
-//                        graphicOverlay,
-//                        currentLatencyMs,
-//                        if (shouldShowFps) framesPerSecond else null
-//                    )
-//                )
+                graphicOverlay.add(
+                    InferenceInfoGraphic(
+                        graphicOverlay,
+                        currentLatencyMs,
+                        if (shouldShowFps) framesPerSecond else null
+                    )
+                )
                 this@VisionProcessorBase.onSuccess(results, graphicOverlay)
                 graphicOverlay.postInvalidate()
             }.addOnFailureListener(executor) { e: Exception ->

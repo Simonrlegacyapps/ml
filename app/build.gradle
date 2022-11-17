@@ -48,6 +48,12 @@ repositories {
 }
 
 dependencies {
+    implementation "com.squareup.retrofit2:retrofit:2.9.0"
+    implementation "com.squareup.retrofit2:converter-gson:2.9.0"
+    implementation "com.squareup.okhttp3:okhttp:4.9.0"
+    implementation "com.squareup.okhttp3:logging-interceptor:4.9.0"
+    implementation 'androidx.lifecycle:lifecycle-process:2.5.0'
+
     implementation 'androidx.work:work-runtime-ktx:2.7.1'
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation 'androidx.appcompat:appcompat:1.2.0'
@@ -91,7 +97,6 @@ dependencies {
 
     implementation 'com.google.code.gson:gson:2.9.0'
 
-
     implementation "androidx.camera:camera-core:1.0.2"
     implementation "androidx.camera:camera-camera2:1.0.2"
     implementation "androidx.camera:camera-lifecycle:1.0.2"
@@ -111,8 +116,6 @@ dependencies {
     // AndroidJUnitRunner and JUnit Rules
     androidTestImplementation 'androidx.test:runner:1.4.0'
     androidTestImplementation 'androidx.test:rules:1.4.0'
-
-
 
     // record video
     implementation 'org.jcodec:jcodec:0.2.5'

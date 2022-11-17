@@ -18,6 +18,7 @@ class InferenceInfoGraphic(
         private const val TEXT_COLOR = Color.WHITE
         private const val TEXT_SIZE = 60.0f
     }
+
     init {
         textPaint.color = TEXT_COLOR
         textPaint.textSize = TEXT_SIZE
@@ -29,16 +30,21 @@ class InferenceInfoGraphic(
         val x = TEXT_SIZE * 0.5f
         val y = TEXT_SIZE * 1.5f
         if (canvas != null) {
-            canvas.drawText(
-                "InputImage size: " + overlay.imageWidth + "x" + overlay.imageHeight,
-                x,
-                y,
-                textPaint
-            )
+//            canvas.drawText(
+//                "InputImage size: " + overlay.imageWidth + "x" + overlay.imageHeight,
+//                x,
+//                y,
+//                textPaint
+//            )
 
-            // Draw FPS (if valid) and inference latency
+            // Drawing FPS (if valid) and inference latency
             if (framesPerSecond != null)
-                canvas.drawText("FPS: $framesPerSecond, latency: $latency ms", x, y + TEXT_SIZE, textPaint)
+                canvas.drawText(
+                    "FPS: $framesPerSecond, Latency: $latency ms",
+                    x,
+                    y + TEXT_SIZE,
+                    textPaint
+                )
             else
                 canvas.drawText("Latency: $latency ms", x, y + TEXT_SIZE, textPaint)
         }

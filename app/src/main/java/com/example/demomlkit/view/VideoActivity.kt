@@ -5,44 +5,32 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.util.DisplayMetrics
 import android.widget.MediaController
-import android.widget.RelativeLayout
-import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.demomlkit.databinding.ActivityVideoBinding
-import com.example.demomlkit.recorded_video_player.MoviePlayer
 import com.example.demomlkit.utils.*
-import com.google.mlkit.vision.pose.PoseDetection
-import com.google.mlkit.vision.pose.PoseDetector
-import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import kotlinx.android.synthetic.main.activity_cam.*
 
-
-class VideoActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListener, MoviePlayer.PlayerFeedback {
-    private lateinit var poseDetector: PoseDetector
+class VideoActivity :
+    AppCompatActivity() { //, TextureView.SurfaceTextureListener, MoviePlayer.PlayerFeedback {
     lateinit var binding: ActivityVideoBinding
-    private var imageProcessor: VisionImageProcessor? = null
-    private var mPlayTask: MoviePlayer.PlayTask? = null
-    private lateinit var uri: Uri
-    private var mSurfaceTextureReady = false
 
     companion object {
         private const val REQUEST_CODE_PERMISSIONS = 10
         private val REQUIRED_PERMISSIONS =
             mutableListOf(
-                Manifest.permission.CAMERA,
+                //   Manifest.permission.CAMERA,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.RECORD_AUDIO,
+                //  Manifest.permission.RECORD_AUDIO,
                 Manifest.permission.READ_EXTERNAL_STORAGE
             ).apply {
                 if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
-                    add(Manifest.permission.CAMERA)
+                    //add(Manifest.permission.CAMERA)
                     add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    add(Manifest.permission.RECORD_AUDIO)
+                    // add(Manifest.permission.RECORD_AUDIO)
                     add(Manifest.permission.READ_EXTERNAL_STORAGE)
                 }
             }.toTypedArray()
@@ -65,17 +53,7 @@ class VideoActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListen
         binding = ActivityVideoBinding.inflate(layoutInflater)
         setContentView(binding.root)
         checkAllPermissions()
-
-        //binding.mTextureView.surfaceTextureListener = this
-
-      //  setUpPoseDetect()
-
         val mUri = Uri.parse(intent.extras?.getString("file_uri"))
-
-//        val mediaMetadataRetriever = MediaMetadataRetriever()
-//        mediaMetadataRetriever.setDataSource(this, mUri)
-//        binding.imgView.setImageBitmap(mediaMetadataRetriever.getFrameAtIndex(0))
-
         binding.ivBackBtn.setOnClickListener {
             finish()
         }
@@ -92,8 +70,8 @@ class VideoActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListen
         binding.videoView.requestFocus()
 
         binding.videoView.setOnPreparedListener { mp ->
-           binding.videoView.scaleX = 1.05f
-//            binding.videoView.scaleY = 1.156f
+            binding.videoView.scaleX = 1.06f
+            binding.videoView.scaleY = 1.01f
             binding.videoView.start()
         }
 
@@ -116,6 +94,44 @@ class VideoActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListen
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
     }
+}
+
+
+// scaleX/// scaleY
+//            val videoRatio = mp.videoWidth / mp.videoHeight.toFloat()
+//            val screenRatio = binding.videoView.width / binding.videoView.height.toFloat()
+//            val scaleX = videoRatio / screenRatio
+//            if (scaleX >= 1f)
+//                binding.videoView.scaleX = scaleX
+//            else
+//                binding.videoView.scaleY = 1f / scaleX
+
+
+// so it fits on the screen
+//            val videoWidth = binding.videoView.width //videoWidth
+//            val videoHeight = binding.videoView.height //videoHeight
+//            val videoProportion = videoWidth.toFloat() / videoHeight.toFloat()
+//            val screenWidth = windowManager.defaultDisplay.width
+//            val screenHeight = windowManager.defaultDisplay.height
+//            val screenProportion = screenWidth.toFloat() / screenHeight.toFloat()
+//            val lp = binding.parentLayout.layoutParams
+//
+//            if (videoProportion > screenProportion) {
+//                lp.width = screenWidth
+//                lp.height = (screenWidth.toFloat() / videoProportion).toInt()
+//            } else {
+//                lp.width = (videoProportion * screenHeight.toFloat()).toInt()
+//                lp.height = screenHeight
+//            }
+//            binding.parentLayout.layoutParams = lp
+
+
+// private lateinit var poseDetector: PoseDetector
+//private var imageProcessor: VisionImageProcessor? = null
+//    private var mPlayTask: MoviePlayer.PlayTask? = null
+// private lateinit var uri: Uri
+//    private var mSurfaceTextureReady = false
+
 
 //    @RequiresApi(Build.VERSION_CODES.P)
 //    private fun play() {
@@ -170,34 +186,34 @@ class VideoActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListen
 //        binding.mTextureView.setTransform(txform)
 //    }
 
-    private fun setUpPoseDetect() {
-        val options = PoseDetectorOptions.Builder()
-            .setDetectorMode(PoseDetectorOptions.STREAM_MODE) //CPU_GPU //STREAM_MODE
-            .build()
-        poseDetector = PoseDetection.getClient(options)
-
-        if (imageProcessor != null) imageProcessor!!.stop()
-
-        imageProcessor =
-            try {
-                PoseDetectorProcessor(
-                    this,
-                    poseDetector,
-                    showInFrameLikelihood = true,
-                    visualizeZ = false,
-                    rescaleZForVisualization = false,
-                    runClassification = true,
-                    isStreamMode = true
-                )
-            } catch (e: Exception) {
-                Toast.makeText(
-                    applicationContext,
-                    "Can not create image processor: " + e.localizedMessage,
-                    Toast.LENGTH_LONG
-                ).show()
-                return
-            }
-    }
+//    private fun setUpPoseDetect() {
+//        val options = PoseDetectorOptions.Builder()
+//            .setDetectorMode(PoseDetectorOptions.STREAM_MODE) //CPU_GPU //STREAM_MODE
+//            .build()
+//        poseDetector = PoseDetection.getClient(options)
+//
+//        if (imageProcessor != null) imageProcessor!!.stop()
+//
+//        imageProcessor =
+//            try {
+//                PoseDetectorProcessor(
+//                    this,
+//                    poseDetector,
+//                    showInFrameLikelihood = true,
+//                    visualizeZ = false,
+//                    rescaleZForVisualization = false,
+//                    runClassification = true,
+//                    isStreamMode = true
+//                )
+//            } catch (e: Exception) {
+//                Toast.makeText(
+//                    applicationContext,
+//                    "Can not create image processor: " + e.localizedMessage,
+//                    Toast.LENGTH_LONG
+//                ).show()
+//                return
+//            }
+//    }
 
 //    @RequiresApi(Build.VERSION_CODES.P)
 //    override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
@@ -243,7 +259,7 @@ class VideoActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListen
 //            toast(applicationContext, "Video finished")
 //            finish()
 //        }
-   // }
+// }
 
 //    override fun onPause() {
 //        super.onPause()
@@ -257,34 +273,3 @@ class VideoActivity : AppCompatActivity() { //, TextureView.SurfaceTextureListen
 //    private fun stopPlayback() {
 //        mPlayTask?.requestStop()
 //    }
-}
-
-
-
-// scaleX/// scaleY
-//            val videoRatio = mp.videoWidth / mp.videoHeight.toFloat()
-//            val screenRatio = binding.videoView.width / binding.videoView.height.toFloat()
-//            val scaleX = videoRatio / screenRatio
-//            if (scaleX >= 1f)
-//                binding.videoView.scaleX = scaleX
-//            else
-//                binding.videoView.scaleY = 1f / scaleX
-
-
-// so it fits on the screen
-//            val videoWidth = binding.videoView.width //videoWidth
-//            val videoHeight = binding.videoView.height //videoHeight
-//            val videoProportion = videoWidth.toFloat() / videoHeight.toFloat()
-//            val screenWidth = windowManager.defaultDisplay.width
-//            val screenHeight = windowManager.defaultDisplay.height
-//            val screenProportion = screenWidth.toFloat() / screenHeight.toFloat()
-//            val lp = binding.parentLayout.layoutParams
-//
-//            if (videoProportion > screenProportion) {
-//                lp.width = screenWidth
-//                lp.height = (screenWidth.toFloat() / videoProportion).toInt()
-//            } else {
-//                lp.width = (videoProportion * screenHeight.toFloat()).toInt()
-//                lp.height = screenHeight
-//            }
-//            binding.parentLayout.layoutParams = lp

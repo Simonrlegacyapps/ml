@@ -1,34 +1,35 @@
 package com.example.demomlkit.view
 
 import android.content.Intent
+import android.graphics.Point
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.util.Log
+import android.util.Size
 import android.view.View
+import android.view.WindowInsets
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.demomlkit.BuildConfig
-import com.example.demomlkit.R
-import com.example.demomlkit.databinding.ActivityCamBinding
 import com.example.demomlkit.databinding.ActivityRecordedVideoListBinding
 import com.example.demomlkit.view.adapter.RecordedVideoAdapter
 import java.io.File
-import java.net.URLConnection
+
 
 class RecordedVideoListActivity : AppCompatActivity(), RecordedVideoAdapter.OnVideoClickInterface {
     lateinit var binding: ActivityRecordedVideoListBinding
     lateinit var recordedVideoFile : ArrayList<File>
 
+    @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityRecordedVideoListBinding.inflate(layoutInflater)
         setContentView(binding.root)
         getStoredFiles()
         setupRecyclerview()
+
         binding.ivBackBtn.setOnClickListener {
             finish()
         }

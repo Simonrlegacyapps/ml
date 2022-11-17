@@ -1,11 +1,13 @@
 package com.example.demomlkit.utils
 
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.*
 import android.media.Image.Plane
 import android.os.Build.VERSION_CODES
 import android.util.Log
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.camera.core.ExperimentalGetImage
@@ -42,7 +44,7 @@ fun toast(ctx : Context, msg :String) {
     Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
 }
 
-/** Converts a YUV_420_888 image from CameraX API to a bitmap.  */
+/** Converts YUV_420_888 image from CameraX API to a bitmap.  */
 @RequiresApi(VERSION_CODES.LOLLIPOP)
 @ExperimentalGetImage
 fun getBitmap(image: ImageProxy): Bitmap? {
@@ -263,3 +265,10 @@ fun multiply(a: PointF3D, multiple: PointF3D) = PointF3D.from(a.x * multiple.x, 
 fun maxAbs(point: PointF3D) = Floats.max(Math.abs(point.x), Math.abs(point.y), Math.abs(point.z))
 
 fun sumAbs(point: PointF3D) = Math.abs(point.x) + Math.abs(point.y) + Math.abs(point.z)
+
+fun hideStatusBar(activity: Activity) {
+    activity.window.setFlags(
+        WindowManager.LayoutParams.FLAG_FULLSCREEN,
+        WindowManager.LayoutParams.FLAG_FULLSCREEN
+    )
+}

@@ -60,7 +60,7 @@ internal constructor(
                 // Drawing pose classification text.
                 val classificationX = POSE_CLASSIFICATION_TEXT_SIZE * 0.4f
                 for (i in poseClassification.indices) {
-                    val classificationY = canvas.height - (POSE_CLASSIFICATION_TEXT_SIZE * 2.6f * (poseClassification.size - i).toFloat())
+                    val classificationY = canvas.height - (POSE_CLASSIFICATION_TEXT_SIZE * 3.6f * (poseClassification.size - i).toFloat())
                     poseClassification[i]?.let {
                         canvas.drawText(
                             it,
@@ -71,7 +71,7 @@ internal constructor(
                     }
                 }
 
-                // Draw all the points
+                // Drawing all the points
                 for (landmark in landmarks) {
                     drawPoint(canvas, landmark, whitePaint)
                     if (visualizeZ && rescaleZForVisualization) {
