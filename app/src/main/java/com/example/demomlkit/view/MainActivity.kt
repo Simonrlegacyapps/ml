@@ -2,10 +2,10 @@ package com.example.demomlkit.view
 
 import android.Manifest
 import android.app.AlertDialog
+import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.appcompat.app.AppCompatActivity
@@ -14,7 +14,7 @@ import androidx.core.content.ContextCompat
 import com.example.demomlkit.R
 import com.example.demomlkit.databinding.ActivityMainBinding
 import com.example.demomlkit.utils.PrefManager
-import com.example.demomlkit.utils.toast
+
 
 class MainActivity : AppCompatActivity() {
     lateinit var binding: ActivityMainBinding
@@ -28,12 +28,12 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.RECORD_AUDIO,
                 Manifest.permission.READ_EXTERNAL_STORAGE
             ).apply {
-                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+              //  if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
                     add(Manifest.permission.CAMERA)
                     add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                     add(Manifest.permission.RECORD_AUDIO)
                     add(Manifest.permission.READ_EXTERNAL_STORAGE)
-                }
+              //  }
             }.toTypedArray()
     }
 

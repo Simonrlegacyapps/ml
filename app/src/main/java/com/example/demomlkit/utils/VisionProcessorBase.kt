@@ -91,7 +91,7 @@ abstract class VisionProcessorBase<T> protected constructor(context: Context) : 
         }
     }
 
-    //Common processing logic
+    //Common processing
     private fun requestDetectInImage(
         image: InputImage,
         graphicOverlay: GraphicOverlay,

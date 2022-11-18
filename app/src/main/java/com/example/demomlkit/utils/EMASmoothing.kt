@@ -5,7 +5,7 @@ import java.util.*
 import java.util.concurrent.LinkedBlockingDeque
 
 /**
- * Runing EMA smoothing over a window with given stream of pose classification results.
+ * Running EMA smoothing over a window with given stream of pose classification results.
  */
 class EMASmoothing @JvmOverloads constructor(
     private val windowSize: Int = DEFAULT_WINDOW_SIZE,
@@ -29,13 +29,10 @@ class EMASmoothing @JvmOverloads constructor(
         // Resets memory if the input is too far away from the previous one in time.
         val nowMs = SystemClock.elapsedRealtime()
         if (nowMs - lastInputMs > RESET_THRESHOLD_MS) window.clear()
-
         lastInputMs = nowMs
-
-        // If we are at window size, remove the last result.
+        // If at window size, remove the last result.
         if (window.size == windowSize) window.pollLast()
-
-        // Insert at the beginning of the window.
+        // Inserting at the beginning of window
         window.addFirst(classificationResult)
         val allClasses: MutableSet<String> = HashSet()
         for (result in window) {

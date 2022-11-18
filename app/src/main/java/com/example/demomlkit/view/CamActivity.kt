@@ -9,21 +9,20 @@ import android.content.res.Resources
 import android.graphics.BitmapFactory
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
-import android.media.CamcorderProfile
 import android.media.MediaRecorder
 import android.media.MediaScannerConnection
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.*
-import android.util.DisplayMetrics
 import android.util.Log
 import android.util.SparseIntArray
 import android.view.*
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
-import androidx.camera.core.VideoCapture
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
 import androidx.core.app.ActivityCompat
@@ -32,15 +31,26 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.example.demomlkit.R
 import com.example.demomlkit.databinding.ActivityCamBinding
+import com.example.demomlkit.remote.ApiInterface
+import com.example.demomlkit.remote.BaseBean
+import com.example.demomlkit.remote.UploadRequestBody
 import com.example.demomlkit.utils.*
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.mlkit.common.MlKitException
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetector
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
+import kotlinx.android.synthetic.main.bottom_sheet_permission.*
+import kotlinx.android.synthetic.main.vid_upload.*
+import okhttp3.MultipartBody
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.io.*
 import java.util.*
 import java.util.concurrent.Executors
+
 
 class CamActivity : AppCompatActivity() {
     lateinit var binding: ActivityCamBinding
@@ -63,6 +73,9 @@ class CamActivity : AppCompatActivity() {
     private var mMediaProjectionCallback: MediaProjectionCallback? = null
     private var mMediaRecorder: MediaRecorder? = null
     private var videoFile = ""
+    lateinit var vFile: File
+    lateinit var notificationManager: NotificationManager
+    var dialog: BottomSheetDialog? = null
 
     companion object {
         class BackGround : Service() {
@@ -80,12 +93,9 @@ class CamActivity : AppCompatActivity() {
 
             override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
 //                val notificationIntent = Intent(this, MainActivity::class.java)
-//
 //                val pIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
 //                    PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE)
 //                else PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_ONE_SHOT)
-//
-//
 //                val notification = NotificationCompat.Builder(this, "CHANNEL_ID")
 //                    .setContentTitle("MLKit Recording")
 //                    .setContentText("Running...")
@@ -135,7 +145,7 @@ class CamActivity : AppCompatActivity() {
 //            }
         }
 
-        private const val TAG = "MainActivity" //720//1412
+        private const val TAG = "CamActivity" //720//1412
         private const val REQUEST_CODE = 1000
         private const val DISPLAY_WIDTH = 720
         private const val DISPLAY_HEIGHT = 1400
@@ -154,13 +164,15 @@ class CamActivity : AppCompatActivity() {
                 Manifest.permission.CAMERA,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.READ_EXTERNAL_STORAGE
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.ACCESS_NOTIFICATION_POLICY
             ).apply {
                 if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
                     add(Manifest.permission.CAMERA)
                     add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                     add(Manifest.permission.RECORD_AUDIO)
                     add(Manifest.permission.READ_EXTERNAL_STORAGE)
+                    add(Manifest.permission.ACCESS_NOTIFICATION_POLICY)
                 }
             }.toTypedArray()
     }
@@ -183,6 +195,8 @@ class CamActivity : AppCompatActivity() {
         binding = ActivityCamBinding.inflate(layoutInflater)
         setContentView(binding.root)
         hideStatusBar(this)
+        notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        enableDND(notificationManager)
 
         flashOn = intent.extras?.getString("isFlash")!!
         isLensBack = intent.extras?.getString("isLensBack")!!
@@ -209,9 +223,8 @@ class CamActivity : AppCompatActivity() {
     private fun initRecorder() {
         mMediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(this)
         else MediaRecorder()
-        val file =
-            File(filesDir.absolutePath, "${category}_Video_${System.currentTimeMillis()}.mp4")
-        videoFile = file.absolutePath
+        vFile = File(filesDir.absolutePath, "${category}_Video_${System.currentTimeMillis()}.mp4")
+        videoFile = vFile.absolutePath
 
         try {
             mMediaRecorder!!.reset()
@@ -269,11 +282,11 @@ class CamActivity : AppCompatActivity() {
         mVirtualDisplay!!.release()
         destroyMediaProjection()
 
-        MediaScannerConnection.scanFile(
-            this, arrayOf(videoFile), null
-        ) { path, uri ->
-            Log.i("External", "scanned$path:${uri}")
-        }
+//        MediaScannerConnection.scanFile(
+//            this, arrayOf(videoFile), null
+//        ) { path, uri ->
+//            Log.i("External", "scanned$path:${uri}")
+//        }
     }
 
     private fun destroyMediaProjection() {
@@ -304,8 +317,11 @@ class CamActivity : AppCompatActivity() {
             //   videoCapture.stopRecording()
             //if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q)   // <v10
             stopScreenSharing()
+            imageProcessor?.run { this.stop() }
+            disableDND(notificationManager)
             stopService(Intent(this, BackGround::class.java))
-            finish()
+            showDialog()
+            uploadVideo()
         }
 
         binding.ivBackBtn.setOnClickListener {
@@ -454,10 +470,9 @@ class CamActivity : AppCompatActivity() {
         binding.stopRecordingButton.visibility = View.VISIBLE
     }
 
-    override fun onStop() {
-        super.onStop()
-        imageProcessor?.run { this.stop() }
-    }
+//    override fun onStop() {
+//        super.onStop()
+//    }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -500,6 +515,60 @@ class CamActivity : AppCompatActivity() {
         )
     }
 
+    private fun showDialog() {
+        val view = LayoutInflater.from(this).inflate(R.layout.vid_upload, null, false)
+        dialog = BottomSheetDialog(this, R.style.AppBottomSheetDialogTheme)
+        dialog?.setContentView(view)
+        dialog?.percentage?.text = "0%"
+        dialog?.percentProgressBar?.progress = 0
+        dialog?.show()
+    }
+
+    private fun uploadVideo() {
+        ApiInterface.createApi().uploadVideo(
+            MultipartBody.Part.createFormData(
+                "video",
+                vFile.name,
+                UploadRequestBody(vFile, "video", object : UploadRequestBody.UploadCallback {
+                    override fun onProgressUpdate(percentage: Int) {
+                        dialog?.percentage?.text = "${percentage}%"
+                        dialog?.percentProgressBar?.progress = percentage
+                    }
+                })
+            )
+        ).enqueue(
+            object : Callback<BaseBean> {
+                override fun onFailure(call: Call<BaseBean>, t: Throwable) {
+                    toast(this@CamActivity, t.message.toString())
+                    dialog?.percentage?.text = "0%"
+                    dialog?.percentProgressBar?.progress = 0
+                    dialog?.dismiss()
+                    dialog = null
+                    finish()
+                }
+
+                override fun onResponse(call: Call<BaseBean>, response: Response<BaseBean>) {
+                    if (response.isSuccessful) {
+                        dialog?.percentage?.text = "0%"
+                        dialog?.percentProgressBar?.progress = 0
+                        dialog?.dismiss()
+                        dialog = null
+                        finish()
+                    } else {
+                        response.body()?.let {
+                            dialog?.percentage?.text = "Uploading Failed"
+                            toast(this@CamActivity, it.message)
+                            dialog?.percentage?.text = "0%"
+                            dialog?.percentProgressBar?.progress = 0
+                            dialog?.dismiss()
+                            dialog = null
+                            finish()
+                        }
+                    }
+                }
+            }
+        )
+    }
 }
 
 

@@ -1,7 +1,9 @@
 package com.example.demomlkit.utils
 
 import android.app.Activity
+import android.app.NotificationManager
 import android.content.Context
+import android.content.Context.NOTIFICATION_SERVICE
 import android.content.pm.PackageManager
 import android.graphics.*
 import android.media.Image.Plane
@@ -10,6 +12,7 @@ import android.util.Log
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageProxy
 import androidx.core.content.ContextCompat
@@ -271,4 +274,13 @@ fun hideStatusBar(activity: Activity) {
         WindowManager.LayoutParams.FLAG_FULLSCREEN,
         WindowManager.LayoutParams.FLAG_FULLSCREEN
     )
+}
+
+
+fun enableDND(notificationManager : NotificationManager) {
+    notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE)
+}
+
+fun disableDND(notificationManager : NotificationManager) {
+    notificationManager.setInterruptionFilter(notificationManager.currentInterruptionFilter)
 }

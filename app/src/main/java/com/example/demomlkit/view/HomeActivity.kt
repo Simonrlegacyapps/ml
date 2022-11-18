@@ -2,10 +2,12 @@ package com.example.demomlkit.view
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -33,13 +35,15 @@ class HomeActivity : AppCompatActivity(), CategoriesAdapter.OnCatClickInterface 
                 Manifest.permission.CAMERA,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.READ_EXTERNAL_STORAGE
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.ACCESS_NOTIFICATION_POLICY
             ).apply {
                 if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
                     add(Manifest.permission.CAMERA)
                     add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                     add(Manifest.permission.RECORD_AUDIO)
                     add(Manifest.permission.READ_EXTERNAL_STORAGE)
+                    add(Manifest.permission.ACCESS_NOTIFICATION_POLICY)
                 }
             }.toTypedArray()
     }
@@ -80,17 +84,23 @@ class HomeActivity : AppCompatActivity(), CategoriesAdapter.OnCatClickInterface 
     @RequiresApi(Build.VERSION_CODES.R)
     private fun initListeners() {
         binding.startRecordingButton.setOnClickListener {
-            if (catSelected)
-            startActivity(
-                Intent(this, CamActivity::class.java)
-                .putExtra("category", category)
-                .putExtra("isFlash", isFlashOn)
-                .putExtra("isLensBack", isLensBack))
+            if (catSelected) {
+                if (!(getSystemService(NOTIFICATION_SERVICE) as NotificationManager).isNotificationPolicyAccessGranted) {
+                    val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                    startActivity(intent)
+                } else startActivity(
+                        Intent(this, CamActivity::class.java)
+                            .putExtra("category", category)
+                            .putExtra("isFlash", isFlashOn)
+                            .putExtra("isLensBack", isLensBack))
+            }
             else toast(this, "Please select any category")
         }
+
         binding.goToListButton.setOnClickListener {
             startActivity(Intent(this, RecordedVideoListActivity::class.java))
         }
+
         binding.rotateCameraIconFront.setOnClickListener {
             binding.rotateCameraIconBack.visibility = View.VISIBLE
             binding.rotateCameraIconFront.visibility = View.GONE
