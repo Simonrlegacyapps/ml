@@ -39,4 +39,5 @@
     <style name="AppModalStyle" parent="Widget.Design.BottomSheet.Modal">
         <item name="android:background">@drawable/shape_bottom_shee</item>
     </style>
+
 </resources>

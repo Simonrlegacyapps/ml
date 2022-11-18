@@ -276,11 +276,10 @@ fun hideStatusBar(activity: Activity) {
     )
 }
 
-
 fun enableDND(notificationManager : NotificationManager) {
     notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE)
 }
 
 fun disableDND(notificationManager : NotificationManager) {
-    notificationManager.setInterruptionFilter(notificationManager.currentInterruptionFilter)
+    notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL) //notificationManager.currentInterruptionFilter
 }

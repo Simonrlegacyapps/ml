@@ -195,6 +195,7 @@ class CamActivity : AppCompatActivity() {
         binding = ActivityCamBinding.inflate(layoutInflater)
         setContentView(binding.root)
         hideStatusBar(this)
+
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         enableDND(notificationManager)
 
@@ -522,6 +523,7 @@ class CamActivity : AppCompatActivity() {
         dialog?.percentage?.text = "0%"
         dialog?.percentProgressBar?.progress = 0
         dialog?.show()
+        dialog?.setCancelable(false)
     }
 
     private fun uploadVideo() {
