@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:padding="@dimen/_10sdp">
+    android:padding="16dp">
 
     <TextView
         android:id="@+id/tvCat"
@@ -10,6 +10,6 @@
         android:layout_height="wrap_content"
         android:text="Cat 1"
         android:textStyle="bold"
-        android:textSize="@dimen/_14ssp"
+        android:textSize="20dp"
         android:textColor="@color/white"/>
 </LinearLayout>
